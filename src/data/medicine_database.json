@@ -1,0 +1,62 @@
+[
+  {
+    "id": "001",
+    "brand_name": "Norvasc",
+    "generic_name": "Amlodipine",
+    "strength": "5mg",
+    "form": "Tablet",
+    "active_ingredient": "Amlodipine Besylate",
+    "registered": true,
+    "aliases": [
+      "norvsc",
+      "amlo",
+      "amlodpn",
+      "amlodipine"
+    ]
+  },
+  {
+    "id": "002",
+    "brand_name": "Glucophage",
+    "generic_name": "Metformin",
+    "strength": "500mg",
+    "form": "Tablet",
+    "active_ingredient": "Metformin Hydrochloride",
+    "registered": true,
+    "aliases": [
+      "glucphg",
+      "metformn",
+      "metfor",
+      "metformin"
+    ]
+  },
+  {
+    "id": "003",
+    "brand_name": "Cozaar",
+    "generic_name": "Losartan",
+    "strength": "50mg",
+    "form": "Tablet",
+    "active_ingredient": "Losartan Potassium",
+    "registered": true,
+    "aliases": [
+      "cozar",
+      "losartn",
+      "losar",
+      "losartan"
+    ]
+  },
+  {
+    "id": "004",
+    "brand_name": "Coumadin",
+    "generic_name": "Warfarin",
+    "strength": "5mg",
+    "form": "Tablet",
+    "active_ingredient": "Warfarin Sodium",
+    "registered": true,
+    "aliases": [
+      "coumadn",
+      "warfarn",
+      "warfar",
+      "warfarin"
+    ]
+  }
+]

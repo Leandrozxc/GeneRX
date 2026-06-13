@@ -1,0 +1,122 @@
+{
+  "drugs": [
+    {
+      "id": "1",
+      "brand_name": "Norvasc",
+      "generic_name": "Amlodipine",
+      "dosage": "5mg",
+      "rx_required": true,
+      "fda_registration": "DR-XY12345",
+      "mdrp_price": 22.50,
+      "branded_avg_price": 22.50,
+      "generic_avg_price": 3.00,
+      "savings_percentage": 86,
+      "mdrpSource": "June 12, 2026",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 2.50, "fda_id": "DRP-987", "last_updated": "2026-06-11", "source_type": "pharmacy" },
+        { "manufacturer": "The Generics Pharmacy (TGP)", "price": 2.00, "fda_id": "DRP-654", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "Pharex", "price": 3.50, "fda_id": "DRP-321", "last_updated": "2026-06-08", "source_type": "community" }
+      ]
+    },
+    {
+      "id": "2",
+      "brand_name": "Glucophage",
+      "generic_name": "Metformin",
+      "dosage": "500mg",
+      "rx_required": true,
+      "fda_registration": "DR-AB67890",
+      "mdrp_price": 15.00,
+      "branded_avg_price": 15.00,
+      "generic_avg_price": 2.50,
+      "savings_percentage": 83,
+      "mdrpSource": "June 12, 2026",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 2.00, "fda_id": "DRP-111", "last_updated": "2026-06-10", "source_type": "mdrp" },
+        { "manufacturer": "Generika", "price": 2.20, "fda_id": "DRP-222", "last_updated": "2026-06-12", "source_type": "pharmacy" },
+        { "manufacturer": "Unilab (Biomedis)", "price": 3.00, "fda_id": "DRP-333", "last_updated": "2026-05-28", "source_type": "community" }
+      ]
+    },
+    {
+      "id": "3",
+      "brand_name": "Cozaar",
+      "generic_name": "Losartan",
+      "dosage": "50mg",
+      "rx_required": true,
+      "fda_registration": "DR-CD11223",
+      "mdrp_price": 28.00,
+      "branded_avg_price": 28.00,
+      "generic_avg_price": 4.50,
+      "savings_percentage": 84,
+      "mdrpSource": "June 12, 2026",
+      "alternatives": [
+        { "manufacturer": "TGP", "price": 4.00, "fda_id": "DRP-444", "last_updated": "2026-06-13", "source_type": "mdrp" },
+        { "manufacturer": "Pharex", "price": 4.50, "fda_id": "DRP-555", "last_updated": "2026-06-05", "source_type": "community" },
+        { "manufacturer": "RiteMed", "price": 5.00, "fda_id": "DRP-666", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "4",
+      "brand_name": "Coumadin",
+      "generic_name": "Warfarin",
+      "dosage": "5mg",
+      "rx_required": true,
+      "fda_registration": "DR-NTI888",
+      "mdrp_price": 35.00,
+      "branded_avg_price": 35.00,
+      "generic_avg_price": 12.00,
+      "savings_percentage": 65,
+      "mdrpSource": "June 12, 2026",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 10.00, "fda_id": "DRP-777", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "TGP", "price": 9.50, "fda_id": "DRP-888", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    }
+  ],
+  "pharmacies": [
+    {
+      "id": "p1",
+      "name": "Botika ng Barangay - San Nicolas",
+      "address": "San Nicolas Proper, Cebu City",
+      "lat": 10.2936,
+      "lng": 123.8924,
+      "is_msme": true,
+      "verified": true,
+      "stock": {
+        "1": { "available": true, "price": 2.00 },
+        "2": { "available": true, "price": 2.00 },
+        "3": { "available": false, "price": 0 },
+        "4": { "available": true, "price": 10.00 }
+      }
+    },
+    {
+      "id": "p2",
+      "name": "The Generics Pharmacy (TGP) - Duljo",
+      "address": "Duljo Fatima, Cebu City",
+      "lat": 10.2911,
+      "lng": 123.8899,
+      "is_msme": true,
+      "verified": true,
+      "stock": {
+        "1": { "available": true, "price": 2.00 },
+        "2": { "available": true, "price": 2.20 },
+        "3": { "available": true, "price": 4.00 },
+        "4": { "available": true, "price": 9.50 }
+      }
+    },
+    {
+      "id": "p3",
+      "name": "Generika Drugstore - Tres de Abril",
+      "address": "Tres de Abril St, Cebu City",
+      "lat": 10.2950,
+      "lng": 123.8940,
+      "is_msme": false,
+      "verified": false,
+      "stock": {
+        "1": { "available": true, "price": 2.50 },
+        "2": { "available": true, "price": 2.20 },
+        "3": { "available": true, "price": 4.50 },
+        "4": { "available": false, "price": 0 }
+      }
+    }
+  ]
+}
