@@ -34,14 +34,15 @@ export default function SearchScreen({
   const [ocrModalVisible, setOCRModalVisible] = useState(false);
 
   const ocrController = useOCRController({
-    medicineDatabase,
-    language: currentLanguage,
-    onConfirmed: (genericName) => {
-      // User confirmed a match — populate search bar and trigger drug lookup
-      onSearch(genericName);
-      setOCRModalVisible(false);
-    },
-  });
+  medicineDatabase,
+  language: currentLanguage,
+  onConfirmed: (genericName) => {
+    // Ensure we have a string, then trigger the parent search
+    const cleanName = genericName || ""; 
+    onSearch(cleanName);
+    setOCRModalVisible(false);
+  },
+});
 
     // Inside SearchScreen.js
   const handleScanPress = () => {
@@ -89,7 +90,7 @@ export default function SearchScreen({
         <TextInput
           style={styles.searchInput}
           placeholder={t.searchPlaceholder}
-          value={searchQuery}
+          value={searchQuery || ''} // Safety fallback
           onChangeText={onSearch}
         />
         {/* ── Real OCR scan button (replaces triggerMockOCR) ── */}

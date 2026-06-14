@@ -27,11 +27,13 @@ export const useAppController = () => {
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
 
   const handleSearch = (text) => {
-    setSearchQuery(text);
-    const found = DrugModel.findDrugByName(text);
-    setSelectedDrug(found);
-    setRxConfirmed(false); 
-  };
+  const safeText = text || ''; // If text is null/undefined, use empty string
+  setSearchQuery(safeText);
+  
+  const found = DrugModel.findDrugByName(safeText);
+  setSelectedDrug(found);
+  setRxConfirmed(false); 
+};
 
   const triggerMockOCR = () => {
     setIsScanning(true);
