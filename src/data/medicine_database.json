@@ -7,12 +7,7 @@
     "form": "Tablet",
     "active_ingredient": "Amlodipine Besylate",
     "registered": true,
-    "aliases": [
-      "norvsc",
-      "amlo",
-      "amlodpn",
-      "amlodipine"
-    ]
+    "aliases": ["norvsc", "amlo", "amlodpn", "amlodipine"]
   },
   {
     "id": "002",
@@ -22,12 +17,7 @@
     "form": "Tablet",
     "active_ingredient": "Metformin Hydrochloride",
     "registered": true,
-    "aliases": [
-      "glucphg",
-      "metformn",
-      "metfor",
-      "metformin"
-    ]
+    "aliases": ["glucphg", "metformn", "metfor", "metformin"]
   },
   {
     "id": "003",
@@ -37,12 +27,7 @@
     "form": "Tablet",
     "active_ingredient": "Losartan Potassium",
     "registered": true,
-    "aliases": [
-      "cozar",
-      "losartn",
-      "losar",
-      "losartan"
-    ]
+    "aliases": ["cozar", "losartn", "losar", "losartan"]
   },
   {
     "id": "004",
@@ -52,11 +37,26 @@
     "form": "Tablet",
     "active_ingredient": "Warfarin Sodium",
     "registered": true,
-    "aliases": [
-      "coumadn",
-      "warfarn",
-      "warfar",
-      "warfarin"
-    ]
+    "aliases": ["coumadn", "warfarn", "warfar", "warfarin"]
+  },
+  {
+    "id": "005",
+    "brand_name": "Thydin",
+    "generic_name": "Levothyroxine",
+    "strength": "100mg",
+    "form": "Tablet",
+    "active_ingredient": "Levothyroxine Sodium",
+    "registered": true,
+    "aliases": ["thydin", "levothyroxn", "levo", "thyroxine", "thydn"]
+  },
+  {
+    "id": "006",
+    "brand_name": "Biogesic",
+    "generic_name": "Paracetamol",
+    "strength": "500mg",
+    "form": "Tablet",
+    "active_ingredient": "Paracetamol",
+    "registered": true,
+    "aliases": ["biogesc", "paracetml", "tempra", "paracetamol"]
   }
 ]

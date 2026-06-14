@@ -29,7 +29,9 @@ export const DrugModel = {
   },
   
   findDrugByName: (query) => {
+    if (!name) return null; 
     if (!query.trim()) return null;
+    const searchName = name.trim().toLowerCase();
     return mockData.drugs.find(
       d => d.brand_name.toLowerCase().includes(query.toLowerCase()) || 
            d.generic_name.toLowerCase().includes(query.toLowerCase())

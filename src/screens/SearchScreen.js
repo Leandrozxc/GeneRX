@@ -4,15 +4,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { DrugModel } from '../models/DrugModel';
 
+// ── OCR imports ───────────────────────────────────────────────────────────────
+import { useOCRController } from '../controllers/useOCRController';
+import OCRScanModal from '../components/OCRScanModal';
+import medicineDatabase from '../data/medicine_database.json';
+
 export default function SearchScreen({ 
   searchQuery, 
   onSearch, 
   isScanning, 
-  triggerMockOCR, 
+  triggerMockOCR,   // kept for fallback compatibility
   selectedDrug, 
   handleReportPrice, 
   onNavigateToMap,
-  
   isNarrowTherapeutic,
   rxConfirmed,
   setRxConfirmed,
@@ -26,6 +30,26 @@ export default function SearchScreen({
   const { t, currentLanguage } = useLanguage();
   const [expandedRow, setExpandedRow] = useState(null);
 
+  // ── OCR state ────────────────────────────────────────────────────────────────
+  const [ocrModalVisible, setOCRModalVisible] = useState(false);
+
+  const ocrController = useOCRController({
+    medicineDatabase,
+    language: currentLanguage,
+    onConfirmed: (genericName) => {
+      // User confirmed a match — populate search bar and trigger drug lookup
+      onSearch(genericName);
+      setOCRModalVisible(false);
+    },
+  });
+
+    // Inside SearchScreen.js
+  const handleScanPress = () => {
+    setOCRModalVisible(true); // Open the modal first
+    ocrController.startScan(); // Then trigger the camera
+  };
+
+  // ── Existing helpers ─────────────────────────────────────────────────────────
   const toggleRowExpander = (index) => {
     setExpandedRow(expandedRow === index ? null : index);
   };
@@ -68,13 +92,25 @@ export default function SearchScreen({
           value={searchQuery}
           onChangeText={onSearch}
         />
-        <TouchableOpacity style={styles.ocrButton} onPress={triggerMockOCR}>
+        {/* ── Real OCR scan button (replaces triggerMockOCR) ── */}
+        <TouchableOpacity style={styles.ocrButton} onPress={handleScanPress}>
           <Ionicons name="camera" size={16} color="#fff" />
           <Text style={styles.ocrText}>{t.scanButton}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* OCR Loading Animation */}
+      {/* OCR Scan Modal — full camera → match → confirm flow */}
+      <OCRScanModal
+        visible={ocrModalVisible}
+        ocrController={ocrController}
+        language={currentLanguage}
+        onClose={() => {
+          setOCRModalVisible(false);
+          ocrController.reset();
+        }}
+      />
+
+      {/* Legacy mock OCR loading animation (kept for isScanning prop compatibility) */}
       {isScanning && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#0D9488" />
@@ -106,7 +142,6 @@ export default function SearchScreen({
               </View>
             </View>
 
-            {/* Description Localization Resolver */}
             <View style={styles.descriptionBox}>
               <Text style={styles.descriptionLabel}>{t.labelWhatFor}</Text>
               <Text style={styles.descriptionText}>
@@ -140,14 +175,12 @@ export default function SearchScreen({
                       {renderConfidenceBadge(alt.source_type)}
                     </View>
                     
-                    {/* FIX 2: FDA Reference Text horizontal wrap mapping */}
                     <View style={styles.fdaReferenceWrapper}>
                       <Text style={styles.altFdaText}>
                         FDA Ref: {alt.fda_id}
                       </Text>
                     </View>
                     
-                    {/* FIX 3: Date formatting layout constraints */}
                     <View style={styles.timestampContainer}>
                       <Ionicons name="time-outline" size={12} color="#7a7974" />
                       <Text style={styles.timestampText}>
@@ -158,8 +191,6 @@ export default function SearchScreen({
                   
                   <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                     <Text style={styles.altPrice}>₱{alt.price.toFixed(2)}</Text>
-                    
-                    {/* Tappable ⓘ info icon aligned with row price */}
                     <TouchableOpacity 
                       style={styles.infoIconButton}
                       onPress={() => toggleRowExpander(index)}
@@ -173,7 +204,6 @@ export default function SearchScreen({
                   </View>
                 </View>
 
-                {/* FIX 2: Applied horizontal text wrapper constraints forexpanded details */}
                 {expandedRow === index && (
                   <View style={styles.expandedPanel}>
                     <View style={styles.expandedPanelItemRow}>
@@ -194,7 +224,6 @@ export default function SearchScreen({
                   </View>
                 )}
 
-                {/* FIX 4: Show Pharmacist and Report side by side on exactly one row */}
                 <View style={styles.altActionButtonsRow}>
                   <TouchableOpacity 
                     style={styles.showPharmacistRowButton}
@@ -277,7 +306,6 @@ export default function SearchScreen({
             <View style={styles.pharmacistMainCard}>
               <View style={styles.badgeRow}>
                 <Text style={styles.pharmacistBadge}>{t.pharmacistTitle.toUpperCase()}</Text>
-                
                 {isNearestPharmacyVerified && (
                   <View style={styles.overlayVerifiedBadge}>
                     <Ionicons name="checkmark-circle" size={12} color="#065F46" />
@@ -328,13 +356,13 @@ const styles = StyleSheet.create({
     width: '100%', 
   },
   sectionTitle: {
-    fontSize: 18, // FIX 6: Screen/page titles: 18
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 13, // FIX 6: Card secondary label: 13
+    fontSize: 13,
     color: '#6B7280',
     marginBottom: 16,
     lineHeight: 16,
@@ -356,12 +384,10 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: '100%',
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     color: '#1F2937',
     ...Platform.select({
-      web: {
-        outlineStyle: 'none'
-      }
+      web: { outlineStyle: 'none' }
     })
   },
   ocrButton: {
@@ -377,7 +403,7 @@ const styles = StyleSheet.create({
   ocrText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12, // FIX 6: Button text (small): 12
+    fontSize: 12,
     marginLeft: 4,
   },
   loadingContainer: {
@@ -400,7 +426,7 @@ const styles = StyleSheet.create({
   },
   ntiWarningText: {
     color: '#ffffff',
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     fontWeight: '700',
     flex: 1,
     lineHeight: 18,
@@ -419,12 +445,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brandTitle: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '900',
     color: '#111827',
   },
   genericSubtitle: {
-    fontSize: 13, // FIX 6: Card secondary label: 13
+    fontSize: 13,
     color: '#6B7280',
     marginTop: 1,
   },
@@ -434,7 +460,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   rxText: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11,
     fontWeight: '800',
   },
   descriptionBox: {
@@ -446,13 +472,13 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   descriptionLabel: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '700',
     color: '#475569',
     textTransform: 'uppercase',
   },
   descriptionText: {
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     color: '#1E293B',
     marginTop: 4,
     lineHeight: 18,
@@ -466,7 +492,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   fdaText: {
-    fontSize: 12, // FIX 6: Timestamp / date text: 12
+    fontSize: 12,
     fontWeight: '600',
     color: '#0F766E',
     marginLeft: 4,
@@ -480,13 +506,13 @@ const styles = StyleSheet.create({
     borderLeftColor: '#F59E0B',
   },
   savingsLabel: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '700',
     color: '#B45309',
     textTransform: 'uppercase',
   },
   savingsValue: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '800',
     color: '#92400E',
     marginTop: 1,
@@ -500,25 +526,25 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   mdrpLabel: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '700',
     color: '#1E40AF',
     textTransform: 'uppercase',
   },
   mdrpValue: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '800',
     color: '#1E3A8A',
     marginTop: 2,
   },
   mdrpSource: {
-    fontSize: 11, // FIX 6: Footer / disclaimer text: 11
+    fontSize: 11,
     color: '#2563EB',
     marginTop: 2,
     fontWeight: '600',
   },
   tableTitle: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '700',
     color: '#374151',
     marginBottom: 6,
@@ -539,7 +565,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   altManufacturer: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '800',
     color: '#1F2937',
     marginRight: 6,
@@ -550,10 +576,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   confidenceText: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11,
     fontWeight: '700',
   },
-  // FIX 2: Container style matching
   fdaReferenceWrapper: {
     flexDirection: 'row',
     flex: 1,
@@ -561,7 +586,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 4,
   },
-  // FIX 2: Text style matching
   altFdaText: {
     fontSize: 12,
     color: '#7a7974',
@@ -570,7 +594,6 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 16,
   },
-  // FIX 3: Timestamp row wrapper mapping
   timestampContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -578,7 +601,6 @@ const styles = StyleSheet.create({
     gap: 4,
     marginTop: 4,
   },
-  // FIX 3: Timestamp text mapping
   timestampText: {
     fontSize: 12,
     color: '#7a7974',
@@ -588,11 +610,10 @@ const styles = StyleSheet.create({
     ellipsizeMode: 'tail',
   },
   altPrice: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '800',
     color: '#0D9488',
   },
-  // FIX 4: Unified single-row wrapper constraints
   altActionButtonsRow: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
@@ -615,7 +636,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 8,
   },
-  // FIX 2 parent view mapping
   expandedPanelItemRow: {
     flexDirection: 'row',
     flex: 1,
@@ -623,7 +643,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginVertical: 2,
   },
-  // FIX 2 text view mapping
   expandedPanelItemText: {
     fontSize: 12,
     color: '#7a7974',
@@ -632,7 +651,6 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 16,
   },
-  // FIX 4: Exact colors/borders for Show Pharmacist button
   showPharmacistRowButton: {
     flex: 1,
     height: 36,
@@ -644,14 +662,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#01696f',
   },
-  // FIX 4: Exact Show Pharmacist text style rules
   showPharmacistRowText: {
     fontSize: 12,
     fontWeight: '600',
     numberOfLines: 1,
     color: '#01696f',
   },
-  // FIX 4: Exact colors/borders for Report button
   reportButton: {
     flex: 1,
     height: 36,
@@ -663,7 +679,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f44336',
   },
-  // FIX 4: Exact Report text style rules
   reportButtonText: {
     fontSize: 12,
     fontWeight: '600',
@@ -684,12 +699,12 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   rxGateTitle: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '800',
     color: '#991B1B',
   },
   rxGateSub: {
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     color: '#7F1D1D',
     textAlign: 'center',
     marginTop: 2,
@@ -706,7 +721,7 @@ const styles = StyleSheet.create({
   rxConfirmButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 13, // FIX 6: Button text (primary): 13
+    fontSize: 13,
   },
   primaryActionButton: {
     backgroundColor: '#0D9488',
@@ -720,7 +735,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     color: '#fff',
     fontWeight: '800',
-    fontSize: 13, // FIX 6: Button text (primary): 13
+    fontSize: 13,
     marginLeft: 6,
   },
   softAdvisoryBar: {
@@ -734,14 +749,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   softAdvisoryText: {
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     fontWeight: '600',
     color: '#92400E',
     flex: 1,
     lineHeight: 18,
   },
   regulatoryFooterText: {
-    fontSize: 11, // FIX 6: Footer / disclaimer text: 11
+    fontSize: 11,
     fontWeight: '500',
     color: '#9CA3AF',
     textAlign: 'center',
@@ -760,7 +775,7 @@ const styles = StyleSheet.create({
   },
   infoBoxText: {
     flex: 1,
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13,
     color: '#0F766E',
     marginLeft: 8,
     lineHeight: 18,
@@ -780,7 +795,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pharmacistCloseText: {
-    fontSize: 13, // FIX 6: Button text (primary): 13
+    fontSize: 13,
     fontWeight: '700',
     color: '#374151',
     marginLeft: 8,
@@ -805,7 +820,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pharmacistBadge: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11,
     fontWeight: '800',
     color: '#0D9488',
     backgroundColor: '#CCFBF1',
@@ -823,13 +838,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   overlayVerifiedBadgeText: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11,
     fontWeight: '800',
     color: '#065F46',
     marginLeft: 4,
   },
   pharmacistGenericName: {
-    fontSize: 18, // FIX 6: Screen/page titles: 18 (limited to <=18)
+    fontSize: 18,
     fontWeight: '900',
     color: '#111827',
     marginBottom: 20,
@@ -840,13 +855,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   pharmacistLabel: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '700',
     color: '#6B7280',
     letterSpacing: 0.5,
   },
   pharmacistValue: {
-    fontSize: 15, // FIX 6: Card primary label: 15
+    fontSize: 15,
     fontWeight: '800',
     color: '#1F2937',
     marginTop: 2,
@@ -862,14 +877,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   pharmacistFilipinoText: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14,
     fontWeight: '900',
     color: '#0F766E',
     textAlign: 'center',
     lineHeight: 22,
   },
   pharmacistSubtext: {
-    fontSize: 11, // FIX 6: Footer / disclaimer text: 11
+    fontSize: 11,
     color: '#4D7C0F',
     marginTop: 4,
     fontStyle: 'italic',
