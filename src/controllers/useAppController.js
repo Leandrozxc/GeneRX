@@ -26,14 +26,28 @@ export const useAppController = () => {
   // Group 4: About Modal Visibility
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
 
+  // ==========================================
+  // SHOPEE CHECKOUT STATE: Multi-Item Basket State
+  // ==========================================
+  const [selectedGenericBrand, setSelectedGenericBrand] = useState(null);
+  const [prescriptionBasket, setPrescriptionBasket] = useState([]); // Array of { drugId, brandName, genericName, chosenAlternative, brandedPrice }
+
   const handleSearch = (text) => {
-  const safeText = text || ''; // If text is null/undefined, use empty string
-  setSearchQuery(safeText);
-  
-  const found = DrugModel.findDrugByName(safeText);
-  setSelectedDrug(found);
-  setRxConfirmed(false); 
-};
+    const safeText = text || '';
+    setSearchQuery(safeText);
+    
+    const found = DrugModel.findDrugByName(safeText);
+    setSelectedDrug(found);
+    setRxConfirmed(false); 
+    
+    // Default select cheapest generic brand for single lookup fallback
+    if (found && found.alternatives && found.alternatives.length > 0) {
+      const cheapest = found.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
+      setSelectedGenericBrand(cheapest);
+    } else {
+      setSelectedGenericBrand(null);
+    }
+  };
 
   const triggerMockOCR = () => {
     setIsScanning(true);
@@ -46,7 +60,54 @@ export const useAppController = () => {
       setSearchQuery('Norvasc');
       const amlodipine = DrugModel.findDrugByName('Norvasc');
       setSelectedDrug(amlodipine);
+      
+      if (amlodipine && amlodipine.alternatives.length > 0) {
+        const cheapest = amlodipine.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
+        setSelectedGenericBrand(cheapest);
+      }
     }, 1500);
+  };
+
+  // ==========================================
+  // BASKET UTILITY ACTION HANDLERS (Controllers)
+  // ==========================================
+  
+  // Adds or updates a substitute generic brand to the list (Cart)
+  const handleAddToBasket = (drug, alternative) => {
+    if (!drug || !alternative) return;
+
+    setPrescriptionBasket(prev => {
+      // Check if this drug already exists in our list; if so, replace/update it
+      const filtered = prev.filter(item => item.drugId !== drug.id);
+      const newItem = {
+        drugId: drug.id,
+        brandName: drug.brand_name,
+        genericName: drug.generic_name,
+        dosage: drug.dosage,
+        chosenAlternative: alternative,
+        brandedPrice: drug.branded_avg_price
+      };
+      return [...filtered, newItem];
+    });
+
+    const alertMessage = `Naidagdag na si ${alternative.manufacturer} (${drug.generic_name}) sa iyong Alistahan.`;
+    if (Platform.OS === 'web') alert(alertMessage);
+    else Alert.alert("Naidagdag sa Listahan", alertMessage);
+  };
+
+  // Removes a drug substitution from the list
+  const handleRemoveFromBasket = (drugId) => {
+    setPrescriptionBasket(prev => prev.filter(item => item.drugId !== drugId));
+  };
+
+  // Calculates cumulative totals for all items in the prescription list
+  const getBasketSummary = () => {
+    const brandedCost = prescriptionBasket.reduce((sum, item) => sum + item.brandedPrice, 0);
+    const genericCost = prescriptionBasket.reduce((sum, item) => sum + item.chosenAlternative.price, 0);
+    const savings = brandedCost - genericCost;
+    const percentage = brandedCost > 0 ? Math.round((savings / brandedCost) * 100) : 0;
+
+    return { brandedCost, genericCost, savings, percentage };
   };
 
   const handleReportPrice = (alt) => {
@@ -75,7 +136,8 @@ export const useAppController = () => {
     updatedStock[drugId] = {
       available: stockStatus === 'in_stock' || stockStatus === 'low_stock',
       price: drugPrice,
-      status: stockStatus
+      status: stockStatus,
+      available_brands: pharmacy.stock[drugId]?.available_brands || []
     };
 
     const newOverride = {
@@ -96,8 +158,33 @@ export const useAppController = () => {
     else Alert.alert("Registry Updated", message);
   };
 
+  const getIsNearestPharmacyVerified = () => {
+    if (!selectedDrug) return false;
+    const carryingPharmacies = resolvedPharmacies.filter(p => p.stock[selectedDrug.id]?.available);
+    if (carryingPharmacies.length === 0) return false;
+    return carryingPharmacies[0].verified === true;
+  };
+
+  // ==========================================
+  // MULTI-ITEM PHARMACY INTERSECTION FILTER
+  // ==========================================
   const resolvedPharmacies = DrugModel.getMergedPharmacies(localPharmacyOverrides).filter(pharmacy => {
-    if (recentlyVerifiedOnly) return isRecentlyVerified(pharmacy.last_verified);
+    if (recentlyVerifiedOnly && !isRecentlyVerified(pharmacy.last_verified)) {
+      return false;
+    }
+
+    // MULTI-ITEM CHECK: A pharmacy is ONLY returned if it has stock of 
+    // EVERY single specific generic brand checked in your active prescription basket list.
+    if (prescriptionBasket.length > 0) {
+      return prescriptionBasket.every(item => {
+        const drugStock = pharmacy.stock[item.drugId];
+        if (!drugStock || !drugStock.available) return false;
+        
+        const brands = drugStock.available_brands || [];
+        return brands.includes(item.chosenAlternative.manufacturer);
+      });
+    }
+
     return true;
   });
 
@@ -106,14 +193,6 @@ export const useAppController = () => {
   const handleOpenPharmacistMode = (alt) => {
     setPharmacistSelectedAlt(alt);
     setPharmacistModeVisible(true);
-  };
-
-  // Group 4 Task 4: Determine if nearest pharmacy carrying this drug is a verified partner
-  const getIsNearestPharmacyVerified = () => {
-    if (!selectedDrug) return false;
-    const carryingPharmacies = resolvedPharmacies.filter(p => p.stock[selectedDrug.id]?.available);
-    if (carryingPharmacies.length === 0) return false;
-    return carryingPharmacies[0].verified === true;
   };
 
   return {
@@ -147,9 +226,16 @@ export const useAppController = () => {
     pharmacistSelectedAlt,
     handleOpenPharmacistMode,
 
-    // Group 4 Exports
     aboutModalVisible,
     setAboutModalVisible,
-    isNearestPharmacyVerified: getIsNearestPharmacyVerified()
+    isNearestPharmacyVerified: getIsNearestPharmacyVerified(),
+
+    // Shopee-style exports
+    selectedGenericBrand,
+    setSelectedGenericBrand,
+    prescriptionBasket,
+    handleAddToBasket,
+    handleRemoveFromBasket,
+    basketSummary: getBasketSummary()
   };
 };

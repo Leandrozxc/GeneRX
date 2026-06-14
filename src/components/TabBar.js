@@ -16,6 +16,15 @@ export default function TabBar({ currentScreen, onNavigate }) {
         <Text style={[styles.tabLabel, currentScreen === 'search' && styles.activeTabLabel]}>{t.tabSearch}</Text>
       </TouchableOpacity>
 
+      {/* Step 3: Localized Alistahan Prescription Basket Tab */}
+      <TouchableOpacity 
+        style={[styles.tabItem, currentScreen === 'list' && styles.activeTabItem]}
+        onPress={() => onNavigate('list')}
+      >
+        <Ionicons name="list" size={18} color={currentScreen === 'list' ? '#0D9488' : '#888'} />
+        <Text style={[styles.tabLabel, currentScreen === 'list' && styles.activeTabLabel]}>{t.tabList}</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity 
         style={[styles.tabItem, currentScreen === 'map' && styles.activeTabItem]}
         onPress={() => onNavigate('map')}
@@ -62,7 +71,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#0D9488',
   },
   tabLabel: {
-    fontSize: 11, // FIX 6: Tab bar labels: 11
+    fontSize: 11, // Tab bar labels: 11sp
     fontWeight: '600',
     color: '#888',
     marginTop: 2,

@@ -14,6 +14,7 @@ import AboutModal from './src/components/AboutModal';
 
 // Screen Views
 import SearchScreen from './src/screens/SearchScreen';
+import ListScreen from './src/screens/ListScreen'; // New Import
 import MapScreen from './src/screens/MapScreen';
 import AdherenceScreen from './src/screens/AdherenceScreen';
 
@@ -43,7 +44,7 @@ export default function App() {
                 selectedDrug={controller.selectedDrug}
                 handleReportPrice={controller.handleReportPrice}
                 onNavigateToMap={() => {
-                  controller.setCurrentScreen('map');
+                  controller.setCurrentScreen('list'); // Redirect single search to List view
                 }}
                 isNarrowTherapeutic={controller.isNarrowTherapeutic}
                 rxConfirmed={controller.rxConfirmed}
@@ -53,6 +54,25 @@ export default function App() {
                 pharmacistSelectedAlt={controller.pharmacistSelectedAlt}
                 handleOpenPharmacistMode={controller.handleOpenPharmacistMode}
                 isNearestPharmacyVerified={controller.isNearestPharmacyVerified}
+                
+                // Shopee-style dynamic selectors
+                selectedGenericBrand={controller.selectedGenericBrand}
+                setSelectedGenericBrand={controller.setSelectedGenericBrand}
+                savingsSummary={controller.basketSummary}
+                handleAddToBasket={controller.handleAddToBasket}
+              />
+            )}
+
+            {/* Step 3: ListScreen Router Mounting */}
+            {controller.currentScreen === 'list' && (
+              <ListScreen
+                basket={controller.prescriptionBasket}
+                basketSummary={controller.basketSummary}
+                onRemoveItem={controller.handleRemoveFromBasket}
+                onNavigateToSearch={() => controller.setCurrentScreen('search')}
+                onNavigateToMap={() => controller.setCurrentScreen('map')}
+                rxConfirmed={controller.rxConfirmed}
+                setRxConfirmed={controller.setRxConfirmed}
               />
             )}
 

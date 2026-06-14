@@ -7,6 +7,7 @@ export const LANGUAGES = {
       tabSearch: 'Maghanap',
       tabMap: 'Botika',
       tabAdherence: 'Gamot Ko',
+      tabList: 'Alistahan', // New Cart Tab label
       
       // Search Screen
       searchPlaceholder: 'I-type ang pangalan ng gamot...',
@@ -18,6 +19,9 @@ export const LANGUAGES = {
       moreDetails: 'Higit pang Detalye',
       hideDetails: 'Itago ang Detalye',
       reportPrice: 'Iulat ang Mali',
+      addToList: 'Idagdag sa Listahan', // New Add to Cart button label
+      removeFromList: 'Alisin sa Listahan', // New Remove button label
+      listEmpty: 'Walang laman ang iyong Alistahan.', // New empty cart state
       
       // Result Card Labels
       labelWhatFor: 'Para saan ito?',
@@ -80,6 +84,7 @@ export const LANGUAGES = {
       tabSearch: 'Search',
       tabMap: 'Pharmacy',
       tabAdherence: 'My Medicines',
+      tabList: 'My List',
       searchPlaceholder: 'Type the medicine name...',
       searchTitle: 'Find Generic Alternative',
       scanButton: 'Scan Prescription',
@@ -89,6 +94,9 @@ export const LANGUAGES = {
       moreDetails: 'More Details',
       hideDetails: 'Hide Details',
       reportPrice: 'Report Error',
+      addToList: 'Add to List',
+      removeFromList: 'Remove from List',
+      listEmpty: 'Your Prescription List is empty.',
       labelWhatFor: 'What is this for?',
       labelGeneric: 'Generic Alternative',
       labelMaxPrice: 'DOH Maximum Price',
@@ -137,6 +145,7 @@ export const LANGUAGES = {
       tabSearch: 'Pangita',
       tabMap: 'Botika',
       tabAdherence: 'Akong Tambal',
+      tabList: 'Listahan',
       searchPlaceholder: 'I-type ang ngalan sa tambal...',
       searchTitle: 'Pangitaa ang Katumbas nga Tambal',
       scanButton: 'I-scan ang Reseta',
@@ -146,6 +155,9 @@ export const LANGUAGES = {
       moreDetails: 'Dugang nga Detalye',
       hideDetails: 'Itago ang Detalye',
       reportPrice: 'Ireport ang Sayop',
+      addToList: 'I-apil sa Listahan',
+      removeFromList: 'Kuhaa sa Listahan',
+      listEmpty: 'Walay sulod ang imong Listahan sa Tambal.',
       labelWhatFor: 'Para sa unsa kini?',
       labelGeneric: 'Katumbas nga Tambal',
       labelMaxPrice: 'Pinakataas nga Presyo sa DOH',

@@ -13,7 +13,7 @@ export default function SearchScreen({
   searchQuery, 
   onSearch, 
   isScanning, 
-  triggerMockOCR,   // kept for fallback compatibility
+  triggerMockOCR,   
   selectedDrug, 
   handleReportPrice, 
   onNavigateToMap,
@@ -24,35 +24,48 @@ export default function SearchScreen({
   setPharmacistModeVisible,
   pharmacistSelectedAlt,
   handleOpenPharmacistMode,
-  isNearestPharmacyVerified
+  isNearestPharmacyVerified,
+  
+  // Shopee-style Props
+  selectedGenericBrand,
+  setSelectedGenericBrand,
+  savingsSummary,
+  handleAddToBasket // State dispatcher from controller
 }) {
   
   const { t, currentLanguage } = useLanguage();
   const [expandedRow, setExpandedRow] = useState(null);
 
+  // ── Step 2 state: Toggles between Simplified View & Detailed Product View ───────
+  const [showDetailedView, setShowDetailedView] = useState(false);
+
   // ── OCR state ────────────────────────────────────────────────────────────────
   const [ocrModalVisible, setOCRModalVisible] = useState(false);
 
   const ocrController = useOCRController({
-  medicineDatabase,
-  language: currentLanguage,
-  onConfirmed: (genericName) => {
-    // Ensure we have a string, then trigger the parent search
-    const cleanName = genericName || ""; 
-    onSearch(cleanName);
-    setOCRModalVisible(false);
-  },
-});
+    medicineDatabase,
+    language: currentLanguage,
+    onConfirmed: (genericName) => {
+      const cleanName = genericName || ""; 
+      onSearch(cleanName);
+      setOCRModalVisible(false);
+      setShowDetailedView(false); // Default to simplified view on scan matching
+    },
+  });
 
-    // Inside SearchScreen.js
   const handleScanPress = () => {
-    setOCRModalVisible(true); // Open the modal first
-    ocrController.startScan(); // Then trigger the camera
+    setOCRModalVisible(true); 
+    ocrController.startScan(); 
   };
 
-  // ── Existing helpers ─────────────────────────────────────────────────────────
   const toggleRowExpander = (index) => {
     setExpandedRow(expandedRow === index ? null : index);
+  };
+
+  const getSavingsLabel = () => {
+    if (currentLanguage === 'cebuano') return 'Tipid';
+    if (currentLanguage === 'english') return 'Save';
+    return 'Tipid';
   };
 
   const renderConfidenceBadge = (sourceType) => {
@@ -86,21 +99,23 @@ export default function SearchScreen({
       
       {/* Search Input Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={16} color="#666" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder={t.searchPlaceholder}
-          value={searchQuery || ''} // Safety fallback
-          onChangeText={onSearch}
+          value={searchQuery || ''} 
+          onChangeText={(text) => {
+            onSearch(text);
+            setShowDetailedView(false); // Reset to simplified view when typing a new search
+          }}
         />
-        {/* ── Real OCR scan button (replaces triggerMockOCR) ── */}
         <TouchableOpacity style={styles.ocrButton} onPress={handleScanPress}>
           <Ionicons name="camera" size={16} color="#fff" />
           <Text style={styles.ocrText}>{t.scanButton}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* OCR Scan Modal — full camera → match → confirm flow */}
+      {/* OCR Scan Modal */}
       <OCRScanModal
         visible={ocrModalVisible}
         ocrController={ocrController}
@@ -111,7 +126,6 @@ export default function SearchScreen({
         }}
       />
 
-      {/* Legacy mock OCR loading animation (kept for isScanning prop compatibility) */}
       {isScanning && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#0D9488" />
@@ -130,143 +144,174 @@ export default function SearchScreen({
             </View>
           )}
 
-          <View style={styles.resultCard}>
-            <View style={styles.resultHeader}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.brandTitle}>{selectedDrug.brand_name}</Text>
-                <Text style={styles.genericSubtitle}>{t.labelGeneric}: {selectedDrug.generic_name} ({selectedDrug.dosage})</Text>
-              </View>
-              <View style={[styles.rxBadge, { backgroundColor: selectedDrug.rx_required ? '#FEE2E2' : '#D1FAE5' }]}>
-                <Text style={[styles.rxText, { color: selectedDrug.rx_required ? '#EF4444' : '#10B981' }]}>
-                  {selectedDrug.rx_required ? t.labelNeedsRx : t.labelNoRx}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.descriptionBox}>
-              <Text style={styles.descriptionLabel}>{t.labelWhatFor}</Text>
-              <Text style={styles.descriptionText}>
-                {DrugModel.getDescription(selectedDrug, currentLanguage)}
-              </Text>
-            </View>
-
-            <View style={styles.fdaBox}>
-              <Ionicons name="shield-checkmark" size={14} color="#0D9488" />
-              <Text style={styles.fdaText}>FDA: {selectedDrug.fda_registration}</Text>
-            </View>
-
-            <View style={styles.savingsBanner}>
-              <Text style={styles.savingsLabel}>{t.moreDetails}</Text>
-              <Text style={styles.savingsValue}>₱{(selectedDrug.branded_avg_price - selectedDrug.generic_avg_price).toFixed(2)} ({selectedDrug.savings_percentage}%)</Text>
-            </View>
-
-            <View style={styles.mdrpBox}>
-              <Text style={styles.mdrpLabel}>{t.labelMaxPrice}</Text>
-              <Text style={styles.mdrpValue}>₱{selectedDrug.mdrp_price.toFixed(2)} / {t.labelPerTablet}</Text>
-              <Text style={styles.mdrpSource}>{t.labelSource}: DOH MDRP</Text>
-            </View>
-
-            <Text style={styles.tableTitle}>{t.moreDetails}</Text>
-            {selectedDrug.alternatives.map((alt, index) => (
-              <View key={index} style={styles.altBlock}>
-                <View style={styles.altRowGroup1}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <View style={styles.altRowHeader}>
-                      <Text style={styles.altManufacturer}>{alt.manufacturer}</Text>
-                      {renderConfidenceBadge(alt.source_type)}
-                    </View>
-                    
-                    <View style={styles.fdaReferenceWrapper}>
-                      <Text style={styles.altFdaText}>
-                        FDA Ref: {alt.fda_id}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.timestampContainer}>
-                      <Ionicons name="time-outline" size={12} color="#7a7974" />
-                      <Text style={styles.timestampText}>
-                        {t.labelLastUpdated}: {alt.last_updated}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                    <Text style={styles.altPrice}>₱{alt.price.toFixed(2)}</Text>
-                    <TouchableOpacity 
-                      style={styles.infoIconButton}
-                      onPress={() => toggleRowExpander(index)}
-                    >
-                      <Ionicons 
-                        name={expandedRow === index ? "information-circle" : "information-circle-outline"} 
-                        size={20} 
-                        color="#01696f" 
-                      />
-                    </TouchableOpacity>
-                  </View>
+          {/* ==========================================
+              STEP 2: RENDER BRANCH (SIMPLIFIED VS DETAILED)
+              ========================================== */}
+          {!showDetailedView ? (
+            /* 1. SIMPLIFIED LOOKUP CARD: Shows basic info only */
+            <TouchableOpacity 
+              style={styles.resultCard}
+              onPress={() => setShowDetailedView(true)}
+            >
+              <View style={styles.resultHeader}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.brandTitle}>{selectedDrug.brand_name}</Text>
+                  <Text style={styles.genericSubtitle}>{t.labelGeneric}: {selectedDrug.generic_name} ({selectedDrug.dosage})</Text>
                 </View>
-
-                {expandedRow === index && (
-                  <View style={styles.expandedPanel}>
-                    <View style={styles.expandedPanelItemRow}>
-                      <Text style={styles.expandedPanelItemText}>
-                        • {t.labelSource}: PFDA Drug Registry
-                      </Text>
-                    </View>
-                    <View style={styles.expandedPanelItemRow}>
-                      <Text style={styles.expandedPanelItemText}>
-                        • {t.labelMaxPrice}: DOH MDRP Administrative Order 2021-0035
-                      </Text>
-                    </View>
-                    <View style={styles.expandedPanelItemRow}>
-                      <Text style={styles.expandedPanelItemText}>
-                        • {t.labelLastUpdated}: {selectedDrug.mdrpSource}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                <View style={styles.altActionButtonsRow}>
-                  <TouchableOpacity 
-                    style={styles.showPharmacistRowButton}
-                    onPress={() => handleOpenPharmacistMode(alt)}
-                  >
-                    <Text style={styles.showPharmacistRowText}>{t.showPharmacist}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={styles.reportButton} 
-                    onPress={() => handleReportPrice(alt)}
-                  >
-                    <Text style={styles.reportButtonText}>{t.reportPrice}</Text>
-                  </TouchableOpacity>
+                <View style={[styles.rxBadge, { backgroundColor: selectedDrug.rx_required ? '#FEE2E2' : '#D1FAE5' }]}>
+                  <Text style={[styles.rxText, { color: selectedDrug.rx_required ? '#EF4444' : '#10B981' }]}>
+                    {selectedDrug.rx_required ? t.labelNeedsRx : t.labelNoRx}
+                  </Text>
                 </View>
               </View>
-            ))}
 
-            {selectedDrug.rx_required && !rxConfirmed ? (
-              <View style={styles.rxGateContainer}>
-                <Ionicons name="document-text" size={24} color="#DC2626" />
-                <View style={styles.rxGateTextWrapper}>
-                  <Text style={styles.rxGateTitle}>{t.labelNeedsRx}</Text>
-                  <Text style={styles.rxGateSub}>{t.rxGateMessage}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.rxConfirmButton} 
-                  onPress={() => setRxConfirmed(true)}
-                >
-                  <Text style={styles.rxConfirmButtonText}>{t.rxGateConfirm}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
+              {/* Large, high contrast 56dp action trigger to open details view */}
               <TouchableOpacity 
                 style={styles.primaryActionButton}
-                onPress={onNavigateToMap}
+                onPress={() => setShowDetailedView(true)}
               >
-                <Ionicons name="map" size={16} color="#fff" />
-                <Text style={styles.primaryActionText}>{t.findPharmacy}</Text>
+                <Ionicons name="information-circle-outline" size={18} color="#fff" />
+                <Text style={styles.primaryActionText}>{t.learnMore}</Text>
               </TouchableOpacity>
-            )}
-          </View>
+            </TouchableOpacity>
+          ) : (
+            /* 2. DETAILED CARD: Shows explanations, Shopee checkbox choices & dynamic savings */
+            <View style={styles.resultCard}>
+              <View style={styles.resultHeader}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.brandTitle}>{selectedDrug.brand_name}</Text>
+                  <Text style={styles.genericSubtitle}>{t.labelGeneric}: {selectedDrug.generic_name} ({selectedDrug.dosage})</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowDetailedView(false)}>
+                  <Ionicons name="close-circle-outline" size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.descriptionBox}>
+                <Text style={styles.descriptionLabel}>{t.labelWhatFor}</Text>
+                <Text style={styles.descriptionText}>
+                  {DrugModel.getDescription(selectedDrug, currentLanguage)}
+                </Text>
+              </View>
+
+              <View style={styles.fdaBox}>
+                <Ionicons name="shield-checkmark" size={14} color="#0D9488" />
+                <Text style={styles.fdaText}>FDA: {selectedDrug.fda_registration}</Text>
+              </View>
+
+              <View style={styles.mdrpBox}>
+                <Text style={styles.mdrpLabel}>{t.labelMaxPrice}</Text>
+                <Text style={styles.mdrpValue}>₱{selectedDrug.mdrp_price.toFixed(2)} / {t.labelPerTablet}</Text>
+              </View>
+
+              {/* Shopee-style checkboxes list */}
+              <Text style={styles.tableTitle}>{t.moreDetails}</Text>
+              {selectedDrug.alternatives.map((alt, index) => {
+                const isChecked = selectedGenericBrand && selectedGenericBrand.manufacturer === alt.manufacturer;
+                
+                return (
+                  <View key={index} style={styles.altBlock}>
+                    <TouchableOpacity 
+                      style={styles.altRowGroup1}
+                      onPress={() => setSelectedGenericBrand(alt)}
+                    >
+                      <View style={[styles.shopeeCheckbox, isChecked && styles.shopeeCheckboxActive]}>
+                        {isChecked && <Ionicons name="checkmark" size={12} color="#ffffff" />}
+                      </View>
+
+                      <View style={{ flex: 1, paddingRight: 10 }}>
+                        <View style={styles.altRowHeader}>
+                          <Text style={styles.altManufacturer}>{alt.manufacturer}</Text>
+                          {renderConfidenceBadge(alt.source_type)}
+                        </View>
+                        
+                        <View style={styles.fdaReferenceWrapper}>
+                          <Text style={styles.altFdaText}>
+                            FDA Ref: {alt.fda_id}
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.timestampContainer}>
+                          <Ionicons name="time-outline" size={12} color="#7a7974" style={{ marginRight: 4 }} />
+                          <Text style={styles.timestampText}>
+                            {t.labelLastUpdated}: {alt.last_updated}
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <Text style={styles.altPrice}>₱{alt.price.toFixed(2)}</Text>
+                        <TouchableOpacity 
+                          style={styles.infoIconButton}
+                          onPress={() => toggleRowExpander(index)}
+                        >
+                          <Ionicons 
+                            name={expandedRow === index ? "information-circle" : "information-circle-outline"} 
+                            size={20} 
+                            color="#01696f" 
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+
+                    {expandedRow === index && (
+                      <View style={styles.expandedPanel}>
+                        <View style={styles.expandedPanelItemRow}>
+                          <Text style={styles.expandedPanelItemText}>
+                            • {t.labelSource}: PFDA Drug Registry
+                          </Text>
+                        </View>
+                        <View style={styles.expandedPanelItemRow}>
+                          <Text style={styles.expandedPanelItemText}>
+                            • {t.labelMaxPrice}: DOH MDRP Administrative Order 2021-0035
+                          </Text>
+                        </View>
+                        <View style={styles.expandedPanelItemRow}>
+                          <Text style={styles.expandedPanelItemText}>
+                            • {t.labelLastUpdated}: {selectedDrug.mdrpSource}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    <View style={styles.altActionButtonsRow}>
+                      <TouchableOpacity 
+                        style={styles.showPharmacistRowButton}
+                        onPress={() => handleOpenPharmacistMode(alt)}
+                      >
+                        <Text style={styles.showPharmacistRowText}>{t.showPharmacist}</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.reportButton} 
+                        onPress={() => handleReportPrice(alt)}
+                      >
+                        <Text style={styles.reportButtonText}>{t.reportPrice}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Add to List (Cart) Button — adds choice to basket, resets state so user can search for more */}
+              {selectedGenericBrand && (
+                <TouchableOpacity 
+                  style={[styles.primaryActionButton, { marginTop: 20 }]}
+                  onPress={() => {
+                    handleAddToBasket(selectedDrug, selectedGenericBrand);
+                    // Reset single selection states to clear lookup canvas for next search
+                    onSearch('');
+                    setShowDetailedView(false);
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                  <Text style={styles.primaryActionText}>
+                    {t.addToList} (Tipid: ₱{(selectedDrug.branded_avg_price - selectedGenericBrand.price).toFixed(2)})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           <View style={styles.softAdvisoryBar}>
             <Ionicons name="chatbox-ellipses-outline" size={14} color="#92400E" style={{ marginRight: 6 }} />
@@ -307,9 +352,10 @@ export default function SearchScreen({
             <View style={styles.pharmacistMainCard}>
               <View style={styles.badgeRow}>
                 <Text style={styles.pharmacistBadge}>{t.pharmacistTitle.toUpperCase()}</Text>
+                
                 {isNearestPharmacyVerified && (
                   <View style={styles.overlayVerifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={12} color="#065F46" />
+                    <Ionicons name="checkmark-circle" size={14} color="#065F46" />
                     <Text style={styles.overlayVerifiedBadgeText}>{t.labelVerified}</Text>
                   </View>
                 )}
@@ -339,7 +385,7 @@ export default function SearchScreen({
             </View>
 
             <View style={styles.pharmacistFilipinoPromptBox}>
-              <Ionicons name="hand-right" size={24} color="#0D9488" style={{ marginBottom: 10 }} />
+              <Ionicons name="hand-right" size={28} color="#0D9488" style={{ marginBottom: 10 }} />
               <Text style={styles.pharmacistFilipinoText}>
                 "{t.pharmacistPhrase}"
               </Text>
@@ -357,13 +403,13 @@ const styles = StyleSheet.create({
     width: '100%', 
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 18, 
     fontWeight: '700',
     color: '#111827',
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 13, 
     color: '#6B7280',
     marginBottom: 16,
     lineHeight: 16,
@@ -385,7 +431,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: '100%',
-    fontSize: 13,
+    fontSize: 13, 
     color: '#1F2937',
     ...Platform.select({
       web: { outlineStyle: 'none' }
@@ -404,7 +450,7 @@ const styles = StyleSheet.create({
   ocrText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 12, 
     marginLeft: 4,
   },
   loadingContainer: {
@@ -427,7 +473,7 @@ const styles = StyleSheet.create({
   },
   ntiWarningText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 13, 
     fontWeight: '700',
     flex: 1,
     lineHeight: 18,
@@ -446,12 +492,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brandTitle: {
-    fontSize: 15,
+    fontSize: 15, 
     fontWeight: '900',
     color: '#111827',
   },
   genericSubtitle: {
-    fontSize: 13,
+    fontSize: 13, 
     color: '#6B7280',
     marginTop: 1,
   },
@@ -461,7 +507,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   rxText: {
-    fontSize: 11,
+    fontSize: 11, 
     fontWeight: '800',
   },
   descriptionBox: {
@@ -473,13 +519,13 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   descriptionLabel: {
-    fontSize: 14,
+    fontSize: 14, 
     fontWeight: '700',
     color: '#475569',
     textTransform: 'uppercase',
   },
   descriptionText: {
-    fontSize: 13,
+    fontSize: 13, 
     color: '#1E293B',
     marginTop: 4,
     lineHeight: 18,
@@ -493,7 +539,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   fdaText: {
-    fontSize: 12,
+    fontSize: 12, 
     fontWeight: '600',
     color: '#0F766E',
     marginLeft: 4,
@@ -507,13 +553,13 @@ const styles = StyleSheet.create({
     borderLeftColor: '#F59E0B',
   },
   savingsLabel: {
-    fontSize: 14,
+    fontSize: 14, 
     fontWeight: '700',
     color: '#B45309',
     textTransform: 'uppercase',
   },
   savingsValue: {
-    fontSize: 15,
+    fontSize: 15, 
     fontWeight: '800',
     color: '#92400E',
     marginTop: 1,
@@ -527,25 +573,25 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   mdrpLabel: {
-    fontSize: 14,
+    fontSize: 14, 
     fontWeight: '700',
     color: '#1E40AF',
     textTransform: 'uppercase',
   },
   mdrpValue: {
-    fontSize: 15,
+    fontSize: 15, 
     fontWeight: '800',
     color: '#1E3A8A',
     marginTop: 2,
   },
   mdrpSource: {
-    fontSize: 11,
+    fontSize: 11, 
     color: '#2563EB',
     marginTop: 2,
     fontWeight: '600',
   },
   tableTitle: {
-    fontSize: 14,
+    fontSize: 14, 
     fontWeight: '700',
     color: '#374151',
     marginBottom: 6,
@@ -557,8 +603,24 @@ const styles = StyleSheet.create({
   },
   altRowGroup1: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  shopeeCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#01696f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    backgroundColor: 'transparent',
+  },
+  shopeeCheckboxActive: {
+    backgroundColor: '#01696f',
+    borderColor: '#01696f',
   },
   altRowHeader: {
     flexDirection: 'row',
@@ -566,7 +628,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   altManufacturer: {
-    fontSize: 15,
+    fontSize: 15, 
     fontWeight: '800',
     color: '#1F2937',
     marginRight: 6,
@@ -577,7 +639,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   confidenceText: {
-    fontSize: 11,
+    fontSize: 11, 
     fontWeight: '700',
   },
   fdaReferenceWrapper: {
@@ -611,7 +673,7 @@ const styles = StyleSheet.create({
     ellipsizeMode: 'tail',
   },
   altPrice: {
-    fontSize: 15,
+    fontSize: 15, 
     fontWeight: '800',
     color: '#0D9488',
   },
@@ -621,6 +683,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
     width: '100%',
+    paddingLeft: 30, 
   },
   infoIconButton: {
     padding: 6,
@@ -636,12 +699,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginTop: 8,
+    marginLeft: 30, 
   },
   expandedPanelItemRow: {
     flexDirection: 'row',
-    flex: 1,
     alignItems: 'flex-start',
-    overflow: 'hidden',
     marginVertical: 2,
   },
   expandedPanelItemText: {
@@ -653,38 +715,84 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   showPharmacistRowButton: {
-    flex: 1,
-    height: 36,
-    borderRadius: 6,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 8,
-    backgroundColor: '#e8f4f5',
+    height: 38,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#01696f',
+    borderColor: '#99F6E4',
+    backgroundColor: '#F0FDFA',
+    marginRight: 4,
   },
   showPharmacistRowText: {
     fontSize: 12,
-    fontWeight: '600',
-    numberOfLines: 1,
-    color: '#01696f',
+    fontWeight: '700',
+    color: '#0D9488',
+    marginLeft: 2,
   },
   reportButton: {
-    flex: 1,
-    height: 36,
-    borderRadius: 6,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 8,
-    backgroundColor: '#fdecea',
+    height: 38,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#f44336',
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
   },
   reportButtonText: {
     fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
+    marginLeft: 3,
+  },
+  shopeeSummaryCard: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+  },
+  summaryTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E40AF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  summaryItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 2,
+  },
+  summaryItemLabel: {
+    fontSize: 13,
+    color: '#4B5563',
+  },
+  summaryItemValue: {
+    fontSize: 13,
     fontWeight: '600',
-    numberOfLines: 1,
-    color: '#b71c1c',
+    color: '#1F2937',
+  },
+  summarySavingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#DBEAFE',
+    paddingTop: 6,
+    marginTop: 6,
+  },
+  savingsLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E3A8A',
+  },
+  savingsValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
   rxGateContainer: {
     backgroundColor: '#FEF2F2',

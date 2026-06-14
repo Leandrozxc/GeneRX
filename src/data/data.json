@@ -82,10 +82,10 @@
       "is_msme": true,
       "verified": true,
       "stock": {
-        "1": { "available": true, "price": 2.00 },
-        "2": { "available": true, "price": 2.00 },
-        "3": { "available": false, "price": 0 },
-        "4": { "available": true, "price": 10.00 }
+        "1": { "available": true, "price": 2.00, "available_brands": ["The Generics Pharmacy (TGP)", "Pharex"] },
+        "2": { "available": true, "price": 2.00, "available_brands": ["RiteMed", "Generika"] },
+        "3": { "available": false, "price": 0, "available_brands": [] },
+        "4": { "available": true, "price": 10.00, "available_brands": ["TGP"] }
       }
     },
     {
@@ -97,10 +97,10 @@
       "is_msme": true,
       "verified": true,
       "stock": {
-        "1": { "available": true, "price": 2.00 },
-        "2": { "available": true, "price": 2.20 },
-        "3": { "available": true, "price": 4.00 },
-        "4": { "available": true, "price": 9.50 }
+        "1": { "available": true, "price": 2.00, "available_brands": ["The Generics Pharmacy (TGP)", "RiteMed"] },
+        "2": { "available": true, "price": 2.20, "available_brands": ["RiteMed"] },
+        "3": { "available": true, "price": 4.00, "available_brands": ["TGP", "Pharex", "RiteMed"] },
+        "4": { "available": true, "price": 9.50, "available_brands": ["TGP", "RiteMed"] }
       }
     },
     {
@@ -112,10 +112,10 @@
       "is_msme": false,
       "verified": false,
       "stock": {
-        "1": { "available": true, "price": 2.50 },
-        "2": { "available": true, "price": 2.20 },
-        "3": { "available": true, "price": 4.50 },
-        "4": { "available": false, "price": 0 }
+        "1": { "available": true, "price": 2.50, "available_brands": ["Pharex", "RiteMed"] },
+        "2": { "available": true, "price": 2.20, "available_brands": ["Generika", "Unilab (Biomedis)"] },
+        "3": { "available": true, "price": 4.50, "available_brands": ["TGP", "Pharex"] },
+        "4": { "available": false, "price": 0, "available_brands": [] }
       }
     }
   ]

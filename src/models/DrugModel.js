@@ -28,14 +28,26 @@ export const DrugModel = {
     });
   },
   
+  // FIXED: Crash-proof generic/brand name finder
   findDrugByName: (query) => {
-    if (!name) return null; 
-    if (!query.trim()) return null;
-    const searchName = name.trim().toLowerCase();
-    return mockData.drugs.find(
-      d => d.brand_name.toLowerCase().includes(query.toLowerCase()) || 
-           d.generic_name.toLowerCase().includes(query.toLowerCase())
-    );
+    if (!query) return null;
+    
+    // Safely resolve query to a normalized string
+    let searchStr = '';
+    if (typeof query === 'string') {
+      searchStr = query;
+    } else if (typeof query === 'object') {
+      searchStr = query.brand_name || query.generic_name || query.name || '';
+    }
+    
+    if (!searchStr || !searchStr.trim()) return null;
+    const normalizedQuery = searchStr.toLowerCase().trim();
+
+    return mockData.drugs.find(d => {
+      const brand = d.brand_name || d.name || '';
+      const generic = d.generic_name || '';
+      return brand.toLowerCase().includes(normalizedQuery) || generic.toLowerCase().includes(normalizedQuery);
+    });
   },
 
   isNarrowTherapeuticIndex: (genericName) => {
