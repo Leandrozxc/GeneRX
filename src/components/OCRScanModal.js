@@ -177,7 +177,7 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
 
                 {matchResult.candidates.map((candidate, idx) => (
                   <CandidateCard
-                    key={`${candidate.genericName}-${idx}`} // Add the index to make it truly unique
+                    key={`${candidate.generic_name}-${idx}`} // Correct snake_case key
                     candidate={candidate}
                     language={language}
                     t={t}
@@ -231,15 +231,22 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
 }
 
 // ─── Candidate Card ───────────────────────────────────────────────────────────
+// ─── Candidate Card ───────────────────────────────────────────────────────────
 function CandidateCard({ candidate, language, t, isPrimary, onConfirm, onReject }) {
   const tierColor = TIER_COLORS[candidate.tier] || '#6b7280';
   const confidenceLabel = getConfidenceLabel(candidate.tier, language);
   const confidencePct = Math.round(candidate.confidence * 100);
 
+  // Localized prefix for "Is this..." (12px secondary text)
+  const prefix = language === 'fil' ? 'Ito ba ay' : language === 'ceb' ? 'Kini ba ang' : 'Is this';
+
   return (
     <View style={[styles.candidateCard, isPrimary && styles.candidateCardPrimary]}>
-      {/* 1. Use generic_name here */}
-      <Text style={styles.candidateName}>{candidate.generic_name}</Text>
+      {/* Visual Hierarchy: Prefix (12px) then Drug Name (15px) */}
+      <View style={{ marginBottom: 4 }}>
+        <Text style={styles.didYouMeanPrefix}>{prefix}...</Text>
+        <Text style={styles.candidateName}>{candidate.generic_name}</Text>
+      </View>
 
       <View style={[styles.confidenceBadge, { backgroundColor: tierColor + '1A', borderColor: tierColor }]}>
         <View style={[styles.confidenceDot, { backgroundColor: tierColor }]} />
@@ -248,19 +255,16 @@ function CandidateCard({ candidate, language, t, isPrimary, onConfirm, onReject 
         </Text>
       </View>
 
-      {/* --- THIS IS THE METADATA SECTION --- */}
+      {/* Metadata Section */}
       <View style={styles.metaContainer}>
-        {/* Check for brand_name from your new database */}
         {candidate.brand_name && (
           <MetaRow icon="pricetag-outline" label={t.brandAlso} value={candidate.brand_name} />
         )}
         
-        {/* Check for strength/dosage */}
         {candidate.strength && (
           <MetaRow icon="medical-outline" label={t.dosage} value={candidate.strength} />
         )}
 
-        {/* Check for active_ingredient */}
         {candidate.active_ingredient && (
           <MetaRow icon="flask-outline" label={t.ingredient} value={candidate.active_ingredient} />
         )}
