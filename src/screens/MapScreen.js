@@ -13,13 +13,26 @@ export default function MapScreen({
   setPartnerModalVisible,
   handleUpdatePharmacyStock,
   allOriginalDrugs,
-  allOriginalPharmacies
+  allOriginalPharmacies,
+  
+  // Group 5: Active prescription basket passed down
+  basket
 }) {
 
   const { t } = useLanguage();
   const [formPharmacyId, setFormPharmacyId] = useState(allOriginalPharmacies[0]?.id || '');
   const [formDrugId, setFormDrugId] = useState(allOriginalDrugs[0]?.id || '1');
   const [formStockStatus, setFormStockStatus] = useState('in_stock');
+
+  // Helper: Calculates the exact register cost for your custom basket at this specific pharmacy
+  const calculatePharmacyBasketTotal = (pharmacy) => {
+    if (!basket || basket.length === 0) return 0;
+    return basket.reduce((sum, item) => {
+      const stockInfo = pharmacy.stock[item.drugId];
+      // Use the pharmacy's specific generic price if available
+      return sum + (stockInfo ? stockInfo.price : item.chosenAlternative.price);
+    }, 0);
+  };
 
   const getVerificationBadge = (pharmacy) => {
     const isRecent = isRecentlyVerified(pharmacy.last_verified);
@@ -55,6 +68,7 @@ export default function MapScreen({
       </View>
       <Text style={styles.sectionSubtitle}>{t.mapDisclaimer}</Text>
 
+      {/* Verification Filter Toggle Bar */}
       <View style={styles.filterBar}>
         <TouchableOpacity 
           style={[styles.filterButton, !recentlyVerifiedOnly && styles.activeFilterButton]}
@@ -75,52 +89,30 @@ export default function MapScreen({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.mockMapContainer}>
-        <View style={styles.mapGridLineH} />
-        <View style={styles.mapGridLineV} />
-        <Text style={styles.mapLabel}>SAN NICOLAS, CEBU CITY (DEMO RANGE)</Text>
-        
-        {pharmacies.map((pharmacy) => {
-          let pinColor = '#3B82F6'; 
-          if (pharmacy.id === 'p1') pinColor = '#0D9488'; 
-          if (pharmacy.id === 'p2') pinColor = '#F59E0B'; 
-
-          let pinTop = '35%';
-          let pinLeft = '45%';
-          if (pharmacy.id === 'p2') { pinTop = '65%'; pinLeft = '20%'; }
-          if (pharmacy.id === 'p3') { pinTop = '15%'; pinLeft = '75%'; }
-
-          return (
-            <View key={pharmacy.id} style={[styles.mapPin, { top: pinTop, left: pinLeft }]}>
-              <Ionicons name="location" size={24} color={pinColor} />
-              <View style={styles.pinTooltip}>
-                <Text style={styles.pinLabelText}>{pharmacy.name.split(' - ')[0]}</Text>
-                <Text style={styles.pinVerifiedText}>{t.labelLastUpdated}: {pharmacy.last_verified}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
+      {/* Pharmacy Cards List */}
       {pharmacies.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="alert-circle-outline" size={32} color="#9CA3AF" />
-          <Text style={styles.emptyText}>{t.noResults}</Text>
+          <Ionicons name="alert-circle-outline" size={32} color="#9CA3AF" style={{ marginBottom: 8 }} />
+          <Text style={styles.emptyText}>
+            {basket && basket.length > 0 
+              ? "Walang botika ang may kumpletong stock para sa iyong mga piling generic brands."
+              : t.noResults}
+          </Text>
         </View>
       ) : (
         pharmacies.map((pharmacy) => {
-          const drugId = selectedDrug ? selectedDrug.id : '1';
-          const stockInfo = pharmacy.stock[drugId];
-          const drugName = selectedDrug ? selectedDrug.generic_name : 'Amlodipine';
+          const basketTotal = calculatePharmacyBasketTotal(pharmacy);
 
           return (
-            /* FIX 5: Pharmacy Card specific paddings, borders, colors, and margins */
+            /* Strict FIX 5 Layout Card constraints */
             <View key={pharmacy.id} style={styles.pharmacyCard}>
               
-              {/* FIX 1: Line 1 Pharmacy name + Price in the same row wrapper */}
+              {/* FIX 1: Line 1 Pharmacy name + Custom Basket Register Total */}
               <View style={styles.pharmacyHeaderRow}>
                 <Text style={styles.pharmacyNameText}>{pharmacy.name}</Text>
-                <Text style={styles.pharmacyPriceText}>₱{stockInfo.price.toFixed(2)}</Text>
+                {basket && basket.length > 0 && (
+                  <Text style={styles.pharmacyPriceText}>₱{basketTotal.toFixed(2)}</Text>
+                )}
               </View>
 
               {/* FIX 1: Line 2 Verified badge and availability indicators */}
@@ -140,26 +132,42 @@ export default function MapScreen({
               {/* Row 4: Verification date display indicator */}
               <Text style={styles.cardVerificationText}>{t.labelLastUpdated}: {pharmacy.last_verified}</Text>
 
-              {/* Row 5: Stock Status details footer */}
+              {/* Row 5: Detailed stock items list selected by patient */}
               <View style={styles.stockStatusContainer}>
-                <View style={styles.stockIndicatorRow}>
-                  <View style={[styles.statusDot, { backgroundColor: stockInfo.available ? '#10B981' : '#EF4444' }]} />
-                  <Text style={styles.stockLabel}>
-                    {drugName}: {stockInfo.available ? t.labelAvailable : t.labelOutOfStock}
-                  </Text>
-                </View>
-                {stockInfo.available && (
-                  <TouchableOpacity style={styles.routeButton}>
-                    <Ionicons name="navigate" size={12} color="#0D9488" />
-                    <Text style={styles.routeButtonText}>Directions</Text>
-                  </TouchableOpacity>
+                {basket && basket.length > 0 ? (
+                  <View style={styles.itemizedStockList}>
+                    <Text style={styles.itemizedTitle}>STOCK STATUS AT PRICE:</Text>
+                    {basket.map((item) => {
+                      const stockInfo = pharmacy.stock[item.drugId];
+                      const localPrice = stockInfo ? stockInfo.price : item.chosenAlternative.price;
+                      return (
+                        <View key={item.drugId} style={styles.itemizedRow}>
+                          <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginRight: 6 }} />
+                          <Text style={styles.itemizedText}>
+                            {item.chosenAlternative.manufacturer} ({item.genericName}) — ₱{localPrice.toFixed(2)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.stockIndicatorRow}>
+                    <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+                    <Text style={styles.stockLabel}>Generics Available</Text>
+                  </View>
                 )}
+                
+                <TouchableOpacity style={styles.routeButton}>
+                  <Ionicons name="navigate" size={12} color="#0D9488" />
+                  <Text style={styles.routeButtonText}>Directions</Text>
+                </TouchableOpacity>
               </View>
             </View>
           );
         })
       )}
 
+      {/* Partner Update Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -276,18 +284,18 @@ const styles = StyleSheet.create({
     borderColor: '#0D9488',
   },
   portalLauncherText: {
-    fontSize: 12, // FIX 6: Button text (small): 12
+    fontSize: 12, // Button text (small): 12sp
     fontWeight: '700',
     color: '#0D9488',
     marginLeft: 4,
   },
   sectionTitle: {
-    fontSize: 18, // FIX 6: Screen/page titles: 18
+    fontSize: 18, // Screen/page titles: 18sp
     fontWeight: '700',
     color: '#111827',
   },
   sectionSubtitle: {
-    fontSize: 11, // FIX 6: Footer / disclaimer text: 11
+    fontSize: 11, // Footer / disclaimer text: 11sp
     color: '#6B7280',
     marginBottom: 14,
     lineHeight: 16,
@@ -311,71 +319,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#0D9488',
   },
   filterButtonText: {
-    fontSize: 12, // FIX 6: Button text (small): 12
+    fontSize: 12, // Button text (small): 12sp
     fontWeight: '600',
     color: '#4B5563',
   },
   activeFilterButtonText: {
     color: '#ffffff',
   },
-  mockMapContainer: {
-    height: 160,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 12,
-    marginBottom: 16,
-    position: 'relative',
-    overflow: 'visible', 
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-  },
-  mapLabel: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#94A3B8',
-    position: 'absolute',
-    bottom: 6,
-    letterSpacing: 0.5,
-  },
-  mapGridLineH: {
-    height: 1,
-    width: '100%',
-    backgroundColor: '#CBD5E1',
-    position: 'absolute',
-  },
-  mapGridLineV: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#CBD5E1',
-    position: 'absolute',
-  },
-  mapPin: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  pinTooltip: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 24, 
-    width: 110,
-  },
-  pinLabelText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  pinVerifiedText: {
-    fontSize: 7,
-    color: '#94A3B8',
-    marginTop: 1,
-  },
-  // FIX 5: Strict Card Style configuration rules
+  // Strict FIX 5 Card Style rules
   pharmacyCard: {
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -386,7 +337,7 @@ const styles = StyleSheet.create({
     borderColor: '#d4d1ca',
     width: '100%',
   },
-  // FIX 1: Exact layout constraints for Line 1 title row
+  // FIX 1: Exact layout constraints for title row
   pharmacyHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -394,9 +345,8 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 6, // FIX 5 spacing
   },
-  // FIX 1: Pharmacy Name text spec matching rules
   pharmacyNameText: {
-    fontSize: 14,
+    fontSize: 14, // Card title: 14sp
     fontWeight: '600',
     flex: 1,
     flexShrink: 1,
@@ -405,15 +355,13 @@ const styles = StyleSheet.create({
     ellipsizeMode: 'tail',
     color: '#28251d',
   },
-  // FIX 1: Header Price spec matching rules
   pharmacyPriceText: {
-    fontSize: 14,
+    fontSize: 14, // Card price: 14sp
     fontWeight: '700',
     color: '#01696f',
     marginLeft: 8,
     flexShrink: 0,
   },
-  // FIX 1: Line 2 Verified badge layout wrapper
   pharmacyHeaderLine2: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -429,12 +377,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11, // Badge / tag text: 11sp
     fontWeight: '700',
-    marginLeft: 2,
   },
   pharmacyAddress: {
-    fontSize: 13, // FIX 6: Card secondary label: 13
+    fontSize: 13, // Card secondary: 13sp
     color: '#6B7280',
     marginBottom: 6, // FIX 5 spacing
   },
@@ -447,13 +394,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   partnerBadgeText: {
-    fontSize: 11, // FIX 6: Badge / tag text: 11
+    fontSize: 11, // Badge / tag text: 11sp
     fontWeight: '800',
     color: '#065F46',
     marginLeft: 4,
   },
   cardVerificationText: {
-    fontSize: 12, // FIX 6: Timestamp / date text: 12
+    fontSize: 12, // Timestamp / date text: 12sp
     color: '#9CA3AF',
     marginBottom: 6, // FIX 5 spacing
     fontWeight: '500',
@@ -470,16 +417,36 @@ const styles = StyleSheet.create({
     color: '#2563EB',
   },
   stockStatusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column', // Dynamic column breakdown for list items
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     paddingTop: 6,
   },
+  itemizedStockList: {
+    width: '100%',
+    marginBottom: 6,
+  },
+  itemizedTitle: {
+    fontSize: 11, // Section headers: 11sp
+    fontWeight: '800',
+    color: '#4B5563',
+    marginBottom: 4,
+  },
+  itemizedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  itemizedText: {
+    fontSize: 13, // Body descriptions: 13sp
+    color: '#1F2937',
+    flex: 1,
+    flexWrap: 'wrap',
+  },
   stockIndicatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 6,
   },
   statusDot: {
     width: 8,
@@ -488,24 +455,26 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   stockLabel: {
-    fontSize: 13, // FIX 6: Card secondary label: 13
+    fontSize: 13, // Card secondary: 13sp
     fontWeight: '600',
     color: '#374151',
   },
   routeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    justifyContent: 'center',
     height: 38,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#0D9488',
+    width: '100%',
+    marginTop: 4,
   },
   routeButtonText: {
-    fontSize: 12, // FIX 6: Button text (small): 12
+    fontSize: 12, // Button text (small): 12sp
     fontWeight: '600',
     color: '#0D9488',
-    marginLeft: 2,
+    marginLeft: 4,
   },
   emptyContainer: {
     padding: 30,
@@ -513,7 +482,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    fontSize: 13, // FIX 6: Body descriptions: 13
+    fontSize: 13, // Body descriptions: 13sp
     color: '#6B7280',
     marginTop: 6,
     textAlign: 'center',
@@ -547,7 +516,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14, // Section headers: 14sp
     fontWeight: '800',
     color: '#111827',
   },
@@ -555,7 +524,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formLabel: {
-    fontSize: 14, // FIX 6: Section headers: 14
+    fontSize: 14, // Section headers: 14sp
     fontWeight: '700',
     color: '#374151',
     marginBottom: 6,
@@ -574,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
   },
   radioLabel: {
-    fontSize: 13, // FIX 6: Card secondary label: 13
+    fontSize: 13, // Card secondary: 13sp
     color: '#4B5563',
     marginLeft: 8,
   },
@@ -598,7 +567,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   stockToggleText: {
-    fontSize: 12, // FIX 6: Button text (small): 12
+    fontSize: 12, // Button text (small): 12sp
     fontWeight: '700',
     marginTop: 3,
   },
@@ -614,6 +583,6 @@ const styles = StyleSheet.create({
   modalSubmitText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 13, // FIX 6: Button text (primary): 13
+    fontSize: 13, // Button text (primary): 13sp
   },
 });

@@ -43,20 +43,70 @@
     "id": "005",
     "brand_name": "Thydin",
     "generic_name": "Levothyroxine",
-    "strength": "100mg",
+    "strength": "100mcg",
     "form": "Tablet",
     "active_ingredient": "Levothyroxine Sodium",
     "registered": true,
-    "aliases": ["thydin", "levothyroxn", "levo", "thyroxine", "thydn"]
+    "aliases": ["thydin", "levothyroxn", "levo", "thyroxine", "thydn", "levothyroxine"]
   },
   {
     "id": "006",
-    "brand_name": "Biogesic",
-    "generic_name": "Paracetamol",
-    "strength": "500mg",
+    "brand_name": "Concore",
+    "generic_name": "Bisoprolol",
+    "strength": "2.5mg",
     "form": "Tablet",
-    "active_ingredient": "Paracetamol",
+    "active_ingredient": "Bisoprolol Fumarate",
     "registered": true,
-    "aliases": ["biogesc", "paracetml", "tempra", "paracetamol"]
+    "aliases": ["concore", "bisoprolol", "bisoprlol", "conc"]
+  },
+  {
+    "id": "007",
+    "brand_name": "Vasalat",
+    "generic_name": "Amlodipine",
+    "strength": "5mg",
+    "form": "Tablet",
+    "active_ingredient": "Amlodipine Besylate",
+    "registered": true,
+    "aliases": ["vasalat", "amlodipine", "vasalt", "vasl"]
+  },
+  {
+    "id": "008",
+    "brand_name": "Torus",
+    "generic_name": "Rosuvastatin",
+    "strength": "10mg",
+    "form": "Tablet",
+    "active_ingredient": "Rosuvastatin Calcium",
+    "registered": true,
+    "aliases": ["torus", "rosuvastatin", "rosuvstn", "tors"]
+  },
+  {
+    "id": "009",
+    "brand_name": "Algesia",
+    "generic_name": "Tramadol Paracetamol",
+    "strength": "37.5mg/325mg",
+    "form": "Tablet",
+    "active_ingredient": "Tramadol Hydrochloride + Paracetamol",
+    "registered": true,
+    "aliases": ["algesia", "tramadol", "paracetamol", "algs"]
+  },
+  {
+    "id": "010",
+    "brand_name": "Immunpro",
+    "generic_name": "Na ascorbate Zinc",
+    "strength": "500mg/10mg",
+    "form": "Tablet",
+    "active_ingredient": "Sodium Ascorbate + Zinc",
+    "registered": true,
+    "aliases": ["immunpro", "immun", "ascorbate", "zinc"]
+  },
+  {
+    "id": "011",
+    "brand_name": "Zykast",
+    "generic_name": "Montelukast levocetirizine",
+    "strength": "10mg/5mg",
+    "form": "Tablet",
+    "active_ingredient": "Montelukast Sodium + Levocetirizine Dihydrochloride",
+    "registered": true,
+    "aliases": ["zykast", "montelukast", "levocetirizine", "zykst"]
   }
 ]

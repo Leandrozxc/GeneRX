@@ -14,7 +14,7 @@ import AboutModal from './src/components/AboutModal';
 
 // Screen Views
 import SearchScreen from './src/screens/SearchScreen';
-import ListScreen from './src/screens/ListScreen'; // New Import
+import ListScreen from './src/screens/ListScreen';
 import MapScreen from './src/screens/MapScreen';
 import AdherenceScreen from './src/screens/AdherenceScreen';
 
@@ -44,7 +44,7 @@ export default function App() {
                 selectedDrug={controller.selectedDrug}
                 handleReportPrice={controller.handleReportPrice}
                 onNavigateToMap={() => {
-                  controller.setCurrentScreen('list'); // Redirect single search to List view
+                  controller.setCurrentScreen('list');
                 }}
                 isNarrowTherapeutic={controller.isNarrowTherapeutic}
                 rxConfirmed={controller.rxConfirmed}
@@ -55,7 +55,6 @@ export default function App() {
                 handleOpenPharmacistMode={controller.handleOpenPharmacistMode}
                 isNearestPharmacyVerified={controller.isNearestPharmacyVerified}
                 
-                // Shopee-style dynamic selectors
                 selectedGenericBrand={controller.selectedGenericBrand}
                 setSelectedGenericBrand={controller.setSelectedGenericBrand}
                 savingsSummary={controller.basketSummary}
@@ -63,7 +62,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 3: ListScreen Router Mounting */}
             {controller.currentScreen === 'list' && (
               <ListScreen
                 basket={controller.prescriptionBasket}
@@ -87,6 +85,7 @@ export default function App() {
                 handleUpdatePharmacyStock={controller.handleUpdatePharmacyStock}
                 allOriginalDrugs={controller.allOriginalDrugs}
                 allOriginalPharmacies={controller.allOriginalPharmacies}
+                basket={controller.prescriptionBasket}
               />
             )}
 

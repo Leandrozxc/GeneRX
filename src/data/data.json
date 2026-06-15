@@ -12,6 +12,9 @@
       "generic_avg_price": 3.00,
       "savings_percentage": 86,
       "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa mataas na presyon ng dugo.",
+      "useDescription_en": "Medicine for high blood pressure.",
+      "useDescription_ceb": "Tambal alang sa taas nga presyon sa dugo.",
       "alternatives": [
         { "manufacturer": "RiteMed", "price": 2.50, "fda_id": "DRP-987", "last_updated": "2026-06-11", "source_type": "pharmacy" },
         { "manufacturer": "The Generics Pharmacy (TGP)", "price": 2.00, "fda_id": "DRP-654", "last_updated": "2026-06-12", "source_type": "mdrp" },
@@ -30,6 +33,9 @@
       "generic_avg_price": 2.50,
       "savings_percentage": 83,
       "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa diabetes o mataas na asukal sa dugo.",
+      "useDescription_en": "Medicine for diabetes or high blood sugar.",
+      "useDescription_ceb": "Tambal alang sa diabetes o taas nga asukal sa dugo.",
       "alternatives": [
         { "manufacturer": "RiteMed", "price": 2.00, "fda_id": "DRP-111", "last_updated": "2026-06-10", "source_type": "mdrp" },
         { "manufacturer": "Generika", "price": 2.20, "fda_id": "DRP-222", "last_updated": "2026-06-12", "source_type": "pharmacy" },
@@ -48,6 +54,9 @@
       "generic_avg_price": 4.50,
       "savings_percentage": 84,
       "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa mataas na presyon ng dugo at pangalaga sa kidney.",
+      "useDescription_en": "Medicine for high blood pressure and kidney protection.",
+      "useDescription_ceb": "Tambal alang sa taas nga presyon sa dugo ug pagpanalipod sa kidney.",
       "alternatives": [
         { "manufacturer": "TGP", "price": 4.00, "fda_id": "DRP-444", "last_updated": "2026-06-13", "source_type": "mdrp" },
         { "manufacturer": "Pharex", "price": 4.50, "fda_id": "DRP-555", "last_updated": "2026-06-05", "source_type": "community" },
@@ -66,9 +75,152 @@
       "generic_avg_price": 12.00,
       "savings_percentage": 65,
       "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot na nagpapanatili ng likidong dugo upang maiwasan ang pamumuo. Espesyal na gamot - sumangguni sa doktor.",
+      "useDescription_en": "Medicine that prevents blood clots. Special medicine - consult a doctor.",
+      "useDescription_ceb": "Tambal nga nagpipigil sa dugo sa pag-kumpol. Espesyal nga tambal — mangonsulta sa doktor.",
       "alternatives": [
         { "manufacturer": "RiteMed", "price": 10.00, "fda_id": "DRP-777", "last_updated": "2026-06-12", "source_type": "mdrp" },
         { "manufacturer": "TGP", "price": 9.50, "fda_id": "DRP-888", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "5",
+      "brand_name": "Thydin",
+      "generic_name": "Levothyroxine",
+      "dosage": "100mcg",
+      "rx_required": true,
+      "fda_registration": "DR-NTI555",
+      "mdrp_price": 12.00,
+      "branded_avg_price": 12.00,
+      "generic_avg_price": 4.50,
+      "savings_percentage": 62,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa thyroid gland upang mapanatili ang tamang antas ng hormone.",
+      "useDescription_en": "Medicine for thyroid hormone replacement therapy.",
+      "useDescription_ceb": "Tambal alang sa taas nga hormone sa thyroid gland.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 4.50, "fda_id": "DRP-501", "last_updated": "2026-06-11", "source_type": "mdrp" },
+        { "manufacturer": "Generika", "price": 4.20, "fda_id": "DRP-502", "last_updated": "2026-06-13", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "6",
+      "brand_name": "Concore",
+      "generic_name": "Bisoprolol",
+      "dosage": "2.5mg",
+      "rx_required": true,
+      "fda_registration": "DR-BI601",
+      "mdrp_price": 18.50,
+      "branded_avg_price": 18.50,
+      "generic_avg_price": 5.00,
+      "savings_percentage": 73,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa mataas na presyon ng dugo at pananakit ng dibdib.",
+      "useDescription_en": "Beta-blocker medicine used to manage high blood pressure and angina.",
+      "useDescription_ceb": "Tambal alang sa taas nga presyon sa dugo ug sakit sa kasingkasing.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 5.00, "fda_id": "DRP-601", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "TGP", "price": 4.50, "fda_id": "DRP-602", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "7",
+      "brand_name": "Vasalat",
+      "generic_name": "Amlodipine",
+      "dosage": "5mg",
+      "rx_required": true,
+      "fda_registration": "DR-VS701",
+      "mdrp_price": 22.50,
+      "branded_avg_price": 14.50,
+      "generic_avg_price": 2.50,
+      "savings_percentage": 82,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa altapresyon at pananakit ng dibdib.",
+      "useDescription_en": "Calcium channel blocker used to treat hypertension.",
+      "useDescription_ceb": "Tambal sa taas nga presyon sa dugo ug sakit sa kasingkasing.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 2.50, "fda_id": "DRP-987", "last_updated": "2026-06-11", "source_type": "pharmacy" },
+        { "manufacturer": "TGP", "price": 2.00, "fda_id": "DRP-654", "last_updated": "2026-06-12", "source_type": "mdrp" }
+      ]
+    },
+    {
+      "id": "8",
+      "brand_name": "Torus",
+      "generic_name": "Rosuvastatin",
+      "dosage": "10mg",
+      "rx_required": true,
+      "fda_registration": "DR-TR801",
+      "mdrp_price": 38.00,
+      "branded_avg_price": 38.00,
+      "generic_avg_price": 12.00,
+      "savings_percentage": 68,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot na nagpapababa ng kolesterol upang maiwasan ang sakit sa puso.",
+      "useDescription_en": "Statin drug used to lower cholesterol and prevent cardiovascular disease.",
+      "useDescription_ceb": "Tambal alang sa taas nga kolesterol sa dugo.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 12.00, "fda_id": "DRP-801", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "Pharex", "price": 11.50, "fda_id": "DRP-802", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "9",
+      "brand_name": "Algesia",
+      "generic_name": "Tramadol Paracetamol",
+      "dosage": "37.5mg/325mg",
+      "rx_required": true,
+      "fda_registration": "DR-AL901",
+      "mdrp_price": 24.50,
+      "branded_avg_price": 24.50,
+      "generic_avg_price": 14.50,
+      "savings_percentage": 40,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa katamtaman hanggang sa matinding pananakit ng katawan.",
+      "useDescription_en": "Combination painkiller indicated for moderate to severe pain management.",
+      "useDescription_ceb": "Tambal alang sa kasarangang hangtod grabe nga kasakit sa lawas.",
+      "alternatives": [
+        { "manufacturer": "Generika", "price": 14.00, "fda_id": "DRP-901", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "RiteMed", "price": 14.50, "fda_id": "DRP-902", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "10",
+      "brand_name": "Immunpro",
+      "generic_name": "Na ascorbate Zinc",
+      "dosage": "500mg/10mg",
+      "rx_required": false,
+      "fda_registration": "DR-IM101",
+      "mdrp_price": 9.50,
+      "branded_avg_price": 9.50,
+      "generic_avg_price": 4.00,
+      "savings_percentage": 57,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Bitamina na nagpapalakas ng resistensya laban sa sakit at sipon.",
+      "useDescription_en": "Ascorbic acid and zinc supplement to support immune system health.",
+      "useDescription_ceb": "Bitamina alang sa kalawasan ug pagpataas sa resistensya.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 4.00, "fda_id": "DRP-1001", "last_updated": "2026-06-12", "source_type": "mdrp" },
+        { "manufacturer": "TGP", "price": 3.50, "fda_id": "DRP-1002", "last_updated": "2026-06-11", "source_type": "pharmacy" }
+      ]
+    },
+    {
+      "id": "11",
+      "brand_name": "Zykast",
+      "generic_name": "Montelukast levocetirizine",
+      "dosage": "10mg/5mg",
+      "rx_required": true,
+      "fda_registration": "DR-ZY201",
+      "mdrp_price": 32.00,
+      "branded_avg_price": 32.00,
+      "generic_avg_price": 18.00,
+      "savings_percentage": 43,
+      "mdrpSource": "June 12, 2026",
+      "useDescription_fil": "Gamot para sa hika at allergy o baradong ilong.",
+      "useDescription_en": "Allergy and asthma medication combining an antihistamine and leukotriene receptor antagonist.",
+      "useDescription_ceb": "Tambal alang sa hubak, allergy, ug baradong ilong.",
+      "alternatives": [
+        { "manufacturer": "RiteMed", "price": 18.00, "fda_id": "DRP-2001", "last_updated": "2026-06-11", "source_type": "mdrp" },
+        { "manufacturer": "Generika", "price": 17.50, "fda_id": "DRP-2002", "last_updated": "2026-06-13", "source_type": "pharmacy" }
       ]
     }
   ],
@@ -85,7 +237,14 @@
         "1": { "available": true, "price": 2.00, "available_brands": ["The Generics Pharmacy (TGP)", "Pharex"] },
         "2": { "available": true, "price": 2.00, "available_brands": ["RiteMed", "Generika"] },
         "3": { "available": false, "price": 0, "available_brands": [] },
-        "4": { "available": true, "price": 10.00, "available_brands": ["TGP"] }
+        "4": { "available": true, "price": 10.00, "available_brands": ["TGP"] },
+        "5": { "available": true, "price": 4.50, "available_brands": ["RiteMed"] },
+        "6": { "available": true, "price": 5.00, "available_brands": ["RiteMed"] },
+        "7": { "available": true, "price": 2.00, "available_brands": ["TGP"] },
+        "8": { "available": true, "price": 12.00, "available_brands": ["RiteMed"] },
+        "9": { "available": true, "price": 14.00, "available_brands": ["Generika"] },
+        "10": { "available": true, "price": 3.50, "available_brands": ["TGP"] },
+        "11": { "available": false, "price": 0, "available_brands": [] }
       }
     },
     {
@@ -100,7 +259,14 @@
         "1": { "available": true, "price": 2.00, "available_brands": ["The Generics Pharmacy (TGP)", "RiteMed"] },
         "2": { "available": true, "price": 2.20, "available_brands": ["RiteMed"] },
         "3": { "available": true, "price": 4.00, "available_brands": ["TGP", "Pharex", "RiteMed"] },
-        "4": { "available": true, "price": 9.50, "available_brands": ["TGP", "RiteMed"] }
+        "4": { "available": true, "price": 9.50, "available_brands": ["TGP", "RiteMed"] },
+        "5": { "available": true, "price": 4.20, "available_brands": ["Generika"] },
+        "6": { "available": true, "price": 4.50, "available_brands": ["TGP"] },
+        "7": { "available": true, "price": 2.50, "available_brands": ["RiteMed"] },
+        "8": { "available": true, "price": 11.50, "available_brands": ["Pharex"] },
+        "9": { "available": true, "price": 14.50, "available_brands": ["RiteMed"] },
+        "10": { "available": true, "price": 4.00, "available_brands": ["RiteMed"] },
+        "11": { "available": true, "price": 18.00, "available_brands": ["RiteMed"] }
       }
     },
     {
@@ -115,7 +281,14 @@
         "1": { "available": true, "price": 2.50, "available_brands": ["Pharex", "RiteMed"] },
         "2": { "available": true, "price": 2.20, "available_brands": ["Generika", "Unilab (Biomedis)"] },
         "3": { "available": true, "price": 4.50, "available_brands": ["TGP", "Pharex"] },
-        "4": { "available": false, "price": 0, "available_brands": [] }
+        "4": { "available": false, "price": 0, "available_brands": [] },
+        "5": { "available": true, "price": 4.50, "available_brands": ["RiteMed"] },
+        "6": { "available": true, "price": 5.00, "available_brands": ["RiteMed"] },
+        "7": { "available": true, "price": 2.50, "available_brands": ["RiteMed"] },
+        "8": { "available": true, "price": 12.00, "available_brands": ["RiteMed"] },
+        "9": { "available": true, "price": 14.00, "available_brands": ["Generika"] },
+        "10": { "available": true, "price": 4.00, "available_brands": ["RiteMed"] },
+        "11": { "available": true, "price": 17.50, "available_brands": ["Generika"] }
       }
     }
   ]
