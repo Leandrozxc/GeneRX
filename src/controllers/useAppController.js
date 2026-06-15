@@ -72,12 +72,11 @@ export const useAppController = () => {
   // BASKET UTILITY ACTION HANDLERS (Controllers)
   // ==========================================
   
-  // Adds or updates a substitute generic brand to the list (Cart)
-  const handleAddToBasket = (drug, alternative) => {
+  // FIXED: Added "silent" parameter to bypass single alerts during batch loops
+  const handleAddToBasket = (drug, alternative, silent = false) => {
     if (!drug || !alternative) return;
 
     setPrescriptionBasket(prev => {
-      // Check if this drug already exists in our list; if so, replace/update it
       const filtered = prev.filter(item => item.drugId !== drug.id);
       const newItem = {
         drugId: drug.id,
@@ -90,17 +89,17 @@ export const useAppController = () => {
       return [...filtered, newItem];
     });
 
-    const alertMessage = `Naidagdag na si ${alternative.manufacturer} (${drug.generic_name}) sa iyong Alistahan.`;
-    if (Platform.OS === 'web') alert(alertMessage);
-    else Alert.alert("Naidagdag sa Listahan", alertMessage);
+    if (!silent) {
+      const alertMessage = `Naidagdag na si ${alternative.manufacturer} (${drug.generic_name}) sa iyong Alistahan.`;
+      if (Platform.OS === 'web') alert(alertMessage);
+      else Alert.alert("Naidagdag sa Listahan", alertMessage);
+    }
   };
 
-  // Removes a drug substitution from the list
   const handleRemoveFromBasket = (drugId) => {
     setPrescriptionBasket(prev => prev.filter(item => item.drugId !== drugId));
   };
 
-  // Calculates cumulative totals for all items in the prescription list
   const getBasketSummary = () => {
     const brandedCost = prescriptionBasket.reduce((sum, item) => sum + item.brandedPrice, 0);
     const genericCost = prescriptionBasket.reduce((sum, item) => sum + item.chosenAlternative.price, 0);

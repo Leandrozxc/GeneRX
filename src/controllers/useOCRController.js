@@ -18,9 +18,7 @@ export const useOCRController = ({ medicineDatabase, language, onConfirmed }) =>
   const [matchResult, setMatchResult] = useState({ candidates: [] });
   const [error, setError] = useState(null);
 
-  // --- THIS IS THE NEW FUNCTION ---
   const startScan = async () => {
-    // 1. Request Permissions
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     
     if (status !== 'granted') {
@@ -28,24 +26,19 @@ export const useOCRController = ({ medicineDatabase, language, onConfirmed }) =>
       return;
     }
 
-    // 2. Open the camera UI
-    // We set state to SCANNING so the UI knows the camera is active
     setOcrState(OCRState.SCANNING);
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images', // Fixed the yellow warning (removed MediaTypeOptions)
+        mediaTypes: 'images', 
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
       });
 
-      // 3. Handle the result
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // User took a photo! Send the image URI to the OCR processor
         handleCapture(result.assets[0].uri);
       } else {
-        // User closed the camera without taking a photo
         setOcrState(OCRState.IDLE);
       }
     } catch (err) {
@@ -88,8 +81,14 @@ export const useOCRController = ({ medicineDatabase, language, onConfirmed }) =>
     onConfirmed(candidate.genericName); 
   };
 
+  // ADDED: Dispatch confirmed candidate array to the search view
+  const confirmBatch = (approvedList) => {
+    setOcrState(OCRState.IDLE);
+    onConfirmed(approvedList); 
+  };
+
   const dismissConfirmation = () => setOcrState(OCRState.MANUAL);
-  const rescan = () => startScan(); // Points back to startScan
+  const rescan = () => startScan(); 
   const reset = () => {
     setOcrState(OCRState.IDLE);
     setMatchResult({ candidates: [] });
@@ -102,9 +101,10 @@ export const useOCRController = ({ medicineDatabase, language, onConfirmed }) =>
     progress, 
     matchResult, 
     error, 
-    startScan, // Exporting the function now
+    startScan, 
     handleCapture, 
     confirmCandidate, 
+    confirmBatch, // Exported
     dismissConfirmation, 
     rescan, 
     reset 

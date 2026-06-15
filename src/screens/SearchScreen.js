@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Platform, Modal, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Platform, Modal, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { DrugModel } from '../models/DrugModel';
@@ -42,127 +42,102 @@ export default function SearchScreen({
   // ── Step 4 OCR Sequence States ───────────────────────────────────────────────
   const [ocrModalVisible, setOCRModalVisible] = useState(false);
   const [ocrDetailsModalVisible, setOcrDetailsModalVisible] = useState(false);
-  const [ocrSelectedDrug, setOcrSelectedDrug] = useState(null);
-  const [ocrSelectedBrand, setOcrSelectedBrand] = useState(null);
+  
+  // Multi-item scanning states (Step 4 Upgrade)
+  const [ocrSelectedDrugs, setOcrSelectedDrugs] = useState([]); // Array of drug objects
+  const [ocrSelectedBrands, setOcrSelectedBrands] = useState({}); // Mapping of { [drugId]: alternativeObject }
+
+  // FIXED: Declared the calculator function at the top of the component scope to avoid initialization errors
+  const calculateOcrSavings = () => {
+    let brandedCost = 0;
+    let genericCost = 0;
+    ocrSelectedDrugs.forEach(drug => {
+      brandedCost += drug.branded_avg_price;
+      const chosen = ocrSelectedBrands[drug.id];
+      if (chosen) {
+        genericCost += chosen.price;
+      }
+    });
+    const savings = brandedCost - genericCost;
+    const percentage = brandedCost > 0 ? Math.round((savings / brandedCost) * 100) : 0;
+    return { brandedCost, genericCost, savings, percentage };
+  };
+
+  // Safe destructuring of summary costs
+  const summary = savingsSummary || { brandedCost: 0, genericCost: 0, savings: 0, percentage: 0 };
+  const ocrSummary = calculateOcrSavings();
 
   const ocrController = useOCRController({
     medicineDatabase,
     language: currentLanguage,
-    onConfirmed: (genericName) => {
-      console.log("[GeneRX OCR] onConfirmed triggered with:", genericName);
+    onConfirmed: (approvedCandidates) => {
+      console.log("[GeneRX OCR] onConfirmed triggered with approved batch:", approvedCandidates);
       
-      let cleanName = "";
-      if (genericName) {
-        if (typeof genericName === 'string') {
-          cleanName = genericName;
-        } else if (typeof genericName === 'object') {
-          cleanName = genericName.generic_name || genericName.brand_name || '';
-        }
+      // If no medicines were approved, close the scanner cleanly
+      if (!approvedCandidates || approvedCandidates.length === 0) {
+        setOCRModalVisible(false);
+        return;
       }
-      
-      // Deep recursive prober to locate any matched candidate inside ocrController states
-      const findDeepName = (obj) => {
-        if (!obj) return null;
-        if (typeof obj !== 'object') return null;
-        if (obj.generic_name || obj.brand_name) {
-          return obj.generic_name || obj.brand_name;
-        }
-        for (const key in obj) {
-          try {
-            const foundVal = findDeepName(obj[key]);
-            if (foundVal) return foundVal;
-          } catch (e) {
-            // ignore safe access errors
+
+      // Resolve full data.json metadata for every approved candidate
+      const resolvedDrugs = approvedCandidates.map(cand => {
+        const name = cand.generic_name || cand.brand_name || '';
+        let found = DrugModel.findDrugByName(name);
+        
+        // Database Fallback Engine: Query medicine_database.json if data.json is missing the entry
+        if (!found && name) {
+          const matchedLocal = medicineDatabase.find(med => 
+            med.generic_name.toLowerCase().trim() === name.toLowerCase().trim() ||
+            med.brand_name.toLowerCase().trim() === name.toLowerCase().trim()
+          );
+          if (matchedLocal) {
+            found = {
+              id: matchedLocal.id,
+              brand_name: matchedLocal.brand_name,
+              generic_name: matchedLocal.generic_name,
+              dosage: matchedLocal.strength || "100mcg",
+              rx_required: true,
+              fda_registration: matchedLocal.fda_id || "DR-NTI555",
+              mdrp_price: 12.00,
+              branded_avg_price: 12.00,
+              generic_avg_price: 4.50,
+              savings_percentage: 62,
+              mdrpSource: "June 12, 2026",
+              useDescription_fil: "Gamot para sa thyroid gland upang mapanatili ang tamang antas ng hormone.",
+              useDescription_en: "Medicine for thyroid hormone replacement therapy.",
+              useDescription_ceb: "Tambal alang sa taas nga hormone sa thyroid gland.",
+              alternatives: [
+                { "manufacturer": "RiteMed", "price": 4.50, "fda_id": "DRP-501", "last_updated": "2026-06-11", "source_type": "mdrp" },
+                { "manufacturer": "Generika", "price": 4.20, "fda_id": "DRP-502", "last_updated": "2026-06-13", "source_type": "pharmacy" }
+              ]
+            };
           }
         }
-        return null;
-      };
+        return found;
+      }).filter(Boolean); // Filter out any null values
 
-      if (!cleanName && ocrController) {
-        cleanName = findDeepName(ocrController) || "";
-        console.log("[GeneRX OCR] Resolved deep cleanName:", cleanName);
-      }
-
-      // Close primary scanner camera modal first (forces slide-down transition)
       setOCRModalVisible(false);
 
-      // Search in main results database
-      let found = DrugModel.findDrugByName(cleanName);
-      
-      // CRITICAL FALLBACK: If not found in data.json, query medicine_database.json directly
-      if (!found && cleanName) {
-        console.log("[GeneRX OCR] findDrugByName returned null. Querying local medicineDatabase...");
-        const matchedLocal = medicineDatabase.find(med => 
-          med.generic_name.toLowerCase().trim() === cleanName.toLowerCase().trim() ||
-          med.brand_name.toLowerCase().trim() === cleanName.toLowerCase().trim()
-        );
-        
-        if (matchedLocal) {
-          console.log("[GeneRX OCR] Matched local record:", matchedLocal.generic_name);
-          // Build a mock drug result structure matching data.json
-          found = {
-            id: matchedLocal.id,
-            brand_name: matchedLocal.brand_name,
-            generic_name: matchedLocal.generic_name,
-            dosage: matchedLocal.strength || "100mcg",
-            rx_required: true,
-            fda_registration: matchedLocal.fda_id || "DR-NTI555",
-            mdrp_price: 12.00,
-            branded_avg_price: 12.00,
-            generic_avg_price: 4.50,
-            savings_percentage: 62,
-            mdrpSource: "June 12, 2026",
-            useDescription_fil: "Gamot para sa thyroid gland upang mapanatili ang tamang antas ng hormone.",
-            useDescription_en: "Medicine for thyroid hormone replacement therapy.",
-            useDescription_ceb: "Tambal alang sa taas nga hormone sa thyroid gland.",
-            alternatives: [
-              { "manufacturer": "RiteMed", "price": 4.50, "fda_id": "DRP-501", "last_updated": "2026-06-11", "source_type": "mdrp" },
-              { "manufacturer": "Generika", "price": 4.20, "fda_id": "DRP-502", "last_updated": "2026-06-13", "source_type": "pharmacy" }
-            ]
-          };
-        }
-      }
-
-      // Open details modal safely with transition timeout (prevents iOS overlaps)
-      setTimeout(() => {
-        if (found) {
-          console.log("[GeneRX OCR] Found drug metadata. Open selector modal...");
-          setOcrSelectedDrug(found);
+      if (resolvedDrugs.length > 0) {
+        // Wrap modal trigger to prevent iOS overlaps
+        setTimeout(() => {
+          setOcrSelectedDrugs(resolvedDrugs);
           
-          if (found.alternatives && found.alternatives.length > 0) {
-            const cheapest = found.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
-            setOcrSelectedBrand(cheapest);
-          } else {
-            setOcrSelectedBrand(null);
-          }
-        } else {
-          // Ultimate fallback card if totally missing from all DBs so the UI never fails
-          console.log("[GeneRX OCR] No database match. Spawning localized fallback card...");
-          const mockFallback = {
-            id: "999",
-            brand_name: cleanName || "Unknown Medicine",
-            generic_name: cleanName || "Generic Equivalent",
-            dosage: "100mcg",
-            rx_required: true,
-            fda_registration: "DR-GEN-MOCK",
-            mdrp_price: 15.00,
-            branded_avg_price: 15.00,
-            generic_avg_price: 4.00,
-            savings_percentage: 73,
-            mdrpSource: "June 12, 2026",
-            useDescription_fil: "Impormasyon para sa gamot na ito.",
-            useDescription_en: "Information for this scanned medicine.",
-            useDescription_ceb: "Impormasyon alang sa tambal.",
-            alternatives: [
-              { "manufacturer": "RiteMed", "price": 4.00, "fda_id": "DRP-9991", "last_updated": "2026-06-11", "source_type": "mdrp" },
-              { "manufacturer": "TGP", "price": 3.50, "fda_id": "DRP-9992", "last_updated": "2026-06-12", "source_type": "pharmacy" }
-            ]
-          };
-          setOcrSelectedDrug(mockFallback);
-          setOcrSelectedBrand(mockFallback.alternatives[0]);
-        }
-        setOcrDetailsModalVisible(true);
-      }, 350);
+          // Pre-select cheapest generic brand for each drug row
+          const initialSelections = {};
+          resolvedDrugs.forEach(drug => {
+            if (drug.alternatives && drug.alternatives.length > 0) {
+              const cheapest = drug.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
+              initialSelections[drug.id] = cheapest;
+            }
+          });
+          setOcrSelectedBrands(initialSelections);
+          setOcrDetailsModalVisible(true);
+        }, 350);
+      } else {
+        // Fallback
+        onSearch(approvedCandidates[0]?.generic_name || '');
+      }
     },
   });
 
@@ -205,8 +180,47 @@ export default function SearchScreen({
     }
   };
 
-  // Safe destructuring of summary costs
-  const summary = savingsSummary || { brandedCost: 0, genericCost: 0, savings: 0, percentage: 0 };
+  const handleSelectOcrBrand = (drugId, alt) => {
+    setOcrSelectedBrands(prev => ({
+      ...prev,
+      [drugId]: alt
+    }));
+  };
+
+  // Runs the updates silently in the background, then triggers exactly ONE unified alert
+  const handleAddAllOcrToBasket = () => {
+    ocrSelectedDrugs.forEach(drug => {
+      const chosen = ocrSelectedBrands[drug.id];
+      if (chosen) {
+        // Pass "true" to run silent updates with no individual popup alerts
+        handleAddToBasket(drug, chosen, true);
+      }
+    });
+
+    // Formulate a unified trilingual batch notification
+    const count = ocrSelectedDrugs.length;
+    let alertMessage = "";
+    if (currentLanguage === 'cebuano') {
+      alertMessage = count === 1 
+        ? "Naapil na ang tambal sa imong Listahan." 
+        : `Naapil na ang ${count} ka tambal sa imong Listahan.`;
+    } else if (currentLanguage === 'english') {
+      alertMessage = count === 1 
+        ? "Medicine successfully added to your List." 
+        : `${count} medicines successfully added to your List.`;
+    } else {
+      alertMessage = count === 1 
+        ? "Naidagdag na ang gamot sa iyong Alistahan." 
+        : `Naidagdag na ang ${count} na gamot sa iyong Alistahan.`;
+    }
+
+    if (Platform.OS === 'web') alert(alertMessage);
+    else Alert.alert("Naidagdag sa Listahan", alertMessage);
+
+    setOcrDetailsModalVisible(false);
+    setOcrSelectedDrugs([]);
+    onSearch('');
+  };
 
   return (
     <View style={styles.screenWrapper}>
@@ -260,11 +274,9 @@ export default function SearchScreen({
             </View>
           )}
 
-          {/* ==========================================
-              MANUAL RENDER BRANCH (SIMPLIFIED VS DETAILED)
-              ========================================== */}
+          {/* MANUAL RENDER BRANCH (SIMPLIFIED VS DETAILED) */}
           {!showDetailedView ? (
-            /* 1. SIMPLIFIED LOOKUP CARD: Shows basic info only */
+            /* 1. SIMPLIFIED LOOKUP CARD */
             <TouchableOpacity 
               style={styles.resultCard}
               onPress={() => setShowDetailedView(true)}
@@ -446,7 +458,7 @@ export default function SearchScreen({
       )}
 
       {/* ==========================================
-          STEP 4: SECONDARY BRAND SELECTOR MODAL (Shopee Checkout)
+          STEP 4: UNCONDITIONAL BATCH SELECTOR MODAL (Shopee Checkout)
           ========================================== */}
       <Modal
         animationType="slide"
@@ -455,77 +467,87 @@ export default function SearchScreen({
         onRequestClose={() => setOcrDetailsModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
-          {ocrSelectedDrug ? (
+          {ocrSelectedDrugs && ocrSelectedDrugs.length > 0 ? (
             <View style={styles.modalContainerLarge}>
               <View style={styles.modalHeader}>
                 <Ionicons name="cube-outline" size={20} color="#0D9488" style={{ marginRight: 6 }} />
-                <Text style={styles.modalTitle}>{t.labelGeneric}</Text>
+                <Text style={styles.modalTitle}>{t.tabList}</Text>
                 <TouchableOpacity onPress={() => setOcrDetailsModalVisible(false)}>
                   <Ionicons name="close" size={20} color="#1F2937" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-                {/* Medicine Identity Info */}
-                <View style={styles.ocrProductHeader}>
-                  <Text style={styles.ocrProductBrandTitle}>{ocrSelectedDrug.brand_name}</Text>
-                  <Text style={styles.ocrProductGenericSubtitle}>
-                    Active: {ocrSelectedDrug.generic_name} ({ocrSelectedDrug.strength || ocrSelectedDrug.dosage})
-                  </Text>
-                </View>
-
-                {/* Localized drug use description */}
-                <View style={styles.descriptionBox}>
-                  <Text style={styles.descriptionLabel}>{t.labelWhatFor}</Text>
-                  <Text style={styles.descriptionText}>
-                    {DrugModel.getDescription(ocrSelectedDrug, currentLanguage)}
-                  </Text>
-                </View>
-
-                <Text style={styles.tableTitle}>{t.moreDetails}</Text>
-                {ocrSelectedDrug.alternatives.map((alt, idx) => {
-                  const isChecked = ocrSelectedBrand && ocrSelectedBrand.manufacturer === alt.manufacturer;
+                <Text style={styles.sectionSubtitle}>Pumili ng brand para sa bawat gamot na nakita:</Text>
+                
+                {ocrSelectedDrugs.map((drug) => {
+                  const activeBrand = ocrSelectedBrands[drug.id];
                   
                   return (
-                    <TouchableOpacity 
-                      key={idx} 
-                      style={styles.ocrRadioRow}
-                      onPress={() => setOcrSelectedBrand(alt)}
-                    >
-                      <View style={[styles.shopeeCheckbox, isChecked && styles.shopeeCheckboxActive]}>
-                        {isChecked && <Ionicons name="checkmark" size={12} color="#ffffff" />}
+                    <View key={drug.id} style={styles.shopeeOcrGroupCard}>
+                      <View style={styles.ocrProductHeader}>
+                        <Text style={styles.ocrProductBrandTitle}>{drug.brand_name} ({drug.generic_name})</Text>
+                        <Text style={styles.ocrProductGenericSubtitle}>Dose: {drug.strength || drug.dosage}</Text>
                       </View>
-                      
-                      <View style={{ flex: 1, paddingRight: 10 }}>
-                        <Text style={styles.ocrRadioManufacturer}>{alt.manufacturer}</Text>
-                        <Text style={styles.altFda}>FDA: {alt.fda_id}</Text>
-                      </View>
-                      
-                      <Text style={styles.ocrRadioPrice}>₱{alt.price.toFixed(2)}</Text>
-                    </TouchableOpacity>
+
+                      {drug.alternatives.map((alt, idx) => {
+                        const isChecked = activeBrand && activeBrand.manufacturer === alt.manufacturer;
+                        
+                        return (
+                          <TouchableOpacity 
+                            key={idx} 
+                            style={styles.ocrRadioRow}
+                            onPress={() => handleSelectOcrBrand(drug.id, alt)}
+                          >
+                            <View style={[styles.shopeeCheckbox, isChecked && styles.shopeeCheckboxActive]}>
+                              {isChecked && <Ionicons name="checkmark" size={12} color="#ffffff" />}
+                            </View>
+                            
+                            <View style={{ flex: 1, paddingRight: 10 }}>
+                              <Text style={styles.ocrRadioManufacturer}>{alt.manufacturer}</Text>
+                              <Text style={styles.altFda}>FDA: {alt.fda_id}</Text>
+                            </View>
+                            
+                            <Text style={styles.ocrRadioPrice}>₱{alt.price.toFixed(2)}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                   );
                 })}
 
-                {/* Add to list CTA (56dp height) */}
-                {ocrSelectedBrand && (
-                  <TouchableOpacity 
-                    style={[styles.primaryActionButton, { marginTop: 20 }]}
-                    onPress={() => {
-                      handleAddToBasket(ocrSelectedDrug, ocrSelectedBrand);
-                      setOcrDetailsModalVisible(false);
-                      onSearch(''); // Reset layout search state
-                    }}
-                  >
-                    <Ionicons name="add-circle-outline" size={18} color="#fff" />
-                    <Text style={styles.primaryActionText}>
-                      {t.addToList} (Tipid: ₱{(ocrSelectedDrug.branded_avg_price - ocrSelectedBrand.price).toFixed(2)})
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                <View style={styles.shopeeSummaryCard}>
+                  <Text style={styles.summaryTitle}>KABUUANG DETALYE</Text>
+                  
+                  <View style={styles.summaryItemRow}>
+                    <Text style={styles.summaryItemLabel}>Branded Total:</Text>
+                    <Text style={styles.summaryItemValue}>₱{ocrSummary.brandedCost.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.summaryItemRow}>
+                    <Text style={styles.summaryItemLabel}>Generic Total:</Text>
+                    <Text style={styles.summaryItemValue}>₱{ocrSummary.genericCost.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.summarySavingsRow}>
+                    <Text style={styles.savingsLabel}>Kabuuang {getSavingsLabel()}:</Text>
+                    <Text style={styles.savingsValue}>₱{ocrSummary.savings.toFixed(2)} ({ocrSummary.percentage}% {getSavingsLabel()})</Text>
+                  </View>
+                </View>
+
+                {/* Batch Add CTA (56dp height) */}
+                <TouchableOpacity 
+                  style={[styles.primaryActionButton, { marginTop: 20, marginBottom: 20 }]}
+                  onPress={handleAddAllOcrToBasket}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                  <Text style={styles.primaryActionText}>
+                    {t.addToList} ({getSavingsLabel()}: ₱{ocrSummary.savings.toFixed(2)})
+                  </Text>
+                </TouchableOpacity>
               </ScrollView>
             </View>
           ) : (
-            /* Render active spinner cleanly if state is in-transition */
             <View style={styles.modalContainerLarge}>
               <ActivityIndicator size="large" color="#0D9488" />
             </View>
@@ -1267,5 +1289,13 @@ const styles = StyleSheet.create({
     fontSize: 15, 
     fontWeight: '800',
     color: '#0D9488',
+  },
+  shopeeOcrGroupCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
   },
 });

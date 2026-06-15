@@ -1,31 +1,12 @@
-/**
- * GeneRX OCRScanModal
- *
- * Full-screen modal overlay that drives the prescription scanning experience.
- * Renders a different view per OCR state:
- *
- *   IDLE        → not visible (parent controls visibility)
- *   SCANNING    → "Opening camera…" spinner
- *   PROCESSING  → animated progress bar with status text
- *   CONFIRMING  → "Did you mean?" card stack
- *   MANUAL      → "No match" prompt with manual search CTA
- *   ERROR       → error message with retry button
- *
- * Props:
- *   visible       {boolean}
- *   ocrController {ReturnType<useOCRController>}
- *   language      {'en'|'fil'|'ceb'}
- *   onClose       {() => void}
- */
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  ScrollView, Animated, Easing, Platform,
+  ScrollView, Animated, Easing, Platform, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OCRState } from '../controllers/useOCRController';
 import { ConfidenceTier, getConfidenceLabel } from '../utils/ocrMatcher';
+import medicineDatabase from '../data/medicine_database.json';
 
 // ─── Localisation strings ─────────────────────────────────────────────────────
 const i18n = {
@@ -49,6 +30,7 @@ const i18n = {
     brandAlso:       'Also sold as',
     confidence:      'Match confidence',
     rawTextLabel:    'Detected text (debug)',
+    proceedBtn:      'Proceed to Brand Selection',
   },
   fil: {
     scanTitle:       'I-scan ang Reseta',
@@ -70,6 +52,7 @@ const i18n = {
     brandAlso:       'Kilala rin bilang',
     confidence:      'Katumpakan',
     rawTextLabel:    'Nakitang teksto (debug)',
+    proceedBtn:      'Magpatuloy sa Pili ng Brand',
   },
   ceb: {
     scanTitle:       'I-scan ang Reseta',
@@ -91,21 +74,24 @@ const i18n = {
     brandAlso:       'Nailhan usab nga',
     confidence:      'Katukma',
     rawTextLabel:    'Nakitang teksto (debug)',
+    proceedBtn:      'Padayon sa pag-pili sa Brand',
   },
 };
 
-// ─── Confidence colours ───────────────────────────────────────────────────────
 const TIER_COLORS = {
-  HIGH:   '#16a34a',   // green
-  MEDIUM: '#d97706',   // amber
-  LOW:    '#dc2626',   // red
+  HIGH:   '#16a34a',   
+  MEDIUM: '#d97706',   
+  LOW:    '#dc2626',   
 };
-// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function OCRScanModal({ visible, ocrController, language = 'en', onClose }) {
   const t = i18n[language] ?? i18n.en;
-  const { ocrState, progress, matchResult, error, confirmCandidate, dismissConfirmation, reset, rescan } = ocrController;
+  const { ocrState, progress, matchResult, error, confirmBatch, dismissConfirmation, reset, rescan } = ocrController;
 
-  // Animated progress bar
+  const [selectedCandidates, setSelectedCandidates] = useState({}); // { [token]: candidateObject }
+  const [approvedList, setApprovedList] = useState({}); // { [token]: candidateObject }
+  const [isDropdownExpanded, setIsDropdownExpanded] = useState({}); // { [token]: boolean }
+
   const progressAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -116,10 +102,66 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
     }).start();
   }, [progress]);
 
+  useEffect(() => {
+    if (ocrState === OCRState.CONFIRMING && matchResult?.candidates?.length > 0) {
+      const initialSelections = {};
+      const initialApproved = {};
+      const initialDropdowns = {};
+      
+      matchResult.candidates.forEach(group => {
+        initialSelections[group.token] = group.bestMatch; // Default to best match
+        initialApproved[group.token] = false; // Await explicit confirmation
+        initialDropdowns[group.token] = false;
+      });
+      
+      setSelectedCandidates(initialSelections);
+      setApprovedList(initialApproved);
+      setIsDropdownExpanded(initialDropdowns);
+    }
+  }, [ocrState, matchResult]);
+
   const handleClose = () => {
     reset();
     onClose?.();
   };
+
+  const handleToggleApproval = (token, isApproved) => {
+    setApprovedList(prev => ({
+      ...prev,
+      [token]: isApproved ? selectedCandidates[token] : null
+    }));
+  };
+
+  const handleToggleDropdown = (token) => {
+    setIsDropdownExpanded(prev => ({
+      ...prev,
+      [token]: !prev[token]
+    }));
+  };
+
+  const handleSelectAlternative = (token, choice) => {
+    setSelectedCandidates(prev => ({
+      ...prev,
+      [token]: choice
+    }));
+    
+    setApprovedList(prev => ({
+      ...prev,
+      [token]: null 
+    }));
+    
+    setIsDropdownExpanded(prev => ({
+      ...prev,
+      [token]: false
+    }));
+  };
+
+  const handleBatchConfirm = () => {
+    const verifiedList = Object.values(approvedList).filter(Boolean);
+    confirmBatch(verifiedList);
+  };
+
+  const hasApproved = Object.values(approvedList).some(Boolean);
 
   return (
     <Modal
@@ -131,7 +173,7 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
       <View style={styles.overlay}>
         <View style={styles.sheet}>
 
-          {/* ── Header ── */}
+          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{t.scanTitle}</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn} accessibilityLabel={t.closeBtn}>
@@ -139,22 +181,19 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
             </TouchableOpacity>
           </View>
 
-          {/* ── Content per state ── */}
+          {/* Content */}
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-            {/* SCANNING */}
             {ocrState === OCRState.SCANNING && (
               <StateView icon="camera-outline" label={t.opening} color="#2563eb" />
             )}
 
-            {/* PROCESSING */}
             {ocrState === OCRState.PROCESSING && (
               <View style={styles.processingContainer}>
                 <Ionicons name="document-text-outline" size={48} color="#2563eb" />
                 <Text style={styles.processingLabel}>
                   {progress < 0.5 ? t.processing : t.extracting}
                 </Text>
-                {/* Progress bar */}
                 <View style={styles.progressTrack}>
                   <Animated.View
                     style={[
@@ -167,7 +206,7 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
               </View>
             )}
 
-            {/* CONFIRMING — "Did you mean?" */}
+            {/* CONFIRMING — Multi-Medicine Grouped Select */}
             {ocrState === OCRState.CONFIRMING && matchResult?.candidates?.length > 0 && (
               <View>
                 <View style={styles.didYouMeanHeader}>
@@ -175,26 +214,47 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
                   <Text style={styles.didYouMeanTitle}>{t.didYouMean}</Text>
                 </View>
 
-                {matchResult.candidates.map((candidate, idx) => (
-                  <CandidateCard
-                    key={`${candidate.generic_name}-${idx}`} // Correct snake_case key
-                    candidate={candidate}
-                    language={language}
-                    t={t}
-                    isPrimary={idx === 0}
-                    onConfirm={() => confirmCandidate(candidate)}
-                    onReject={dismissConfirmation}
-                  />
-                ))}
+                {matchResult.candidates.map((group) => {
+                  const activeCandidate = selectedCandidates[group.token];
+                  const isApproved = !!approvedList[group.token];
+                  const isExpanded = !!isDropdownExpanded[group.token];
+                  
+                  if (!activeCandidate) return null;
+
+                  return (
+                    <CandidateCard
+                      key={group.token}
+                      candidate={activeCandidate}
+                      allCandidates={group.alternatives}
+                      language={language}
+                      t={t}
+                      isApproved={isApproved}
+                      isDropdownExpanded={isExpanded}
+                      onApprove={() => handleToggleApproval(group.token, true)}
+                      onReject={() => handleToggleApproval(group.token, false)}
+                      onToggleDropdown={() => handleToggleDropdown(group.token)}
+                      onSelectAlternative={(choice) => handleSelectAlternative(group.token, choice)}
+                      onManualTrigger={dismissConfirmation}
+                    />
+                  );
+                })}
+
+                {/* Sticky Batch Proceed button */}
+                <TouchableOpacity 
+                  style={[styles.primaryActionButton, !hasApproved && styles.disabledButton]} 
+                  onPress={handleBatchConfirm}
+                  disabled={!hasApproved}
+                >
+                  <Ionicons name="arrow-forward-circle-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.primaryActionText}>{t.proceedBtn}</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.manualBtn} onPress={dismissConfirmation}>
-                  <Ionicons name="pencil-outline" size={16} color="#6b7280" />
                   <Text style={styles.manualBtnText}>{t.searchManually}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            {/* MANUAL — No match */}
             {ocrState === OCRState.MANUAL && (
               <View style={styles.noMatchContainer}>
                 <Ionicons name="alert-circle-outline" size={52} color="#d97706" />
@@ -210,7 +270,6 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
               </View>
             )}
 
-            {/* ERROR */}
             {ocrState === OCRState.ERROR && (
               <View style={styles.noMatchContainer}>
                 <Ionicons name="close-circle-outline" size={52} color="#dc2626" />
@@ -230,22 +289,66 @@ export default function OCRScanModal({ visible, ocrController, language = 'en', 
   );
 }
 
-// ─── Candidate Card ───────────────────────────────────────────────────────────
-// ─── Candidate Card ───────────────────────────────────────────────────────────
-function CandidateCard({ candidate, language, t, isPrimary, onConfirm, onReject }) {
+// Rebuilt Candidate Card to act as an explicit toggle select container with custom accordion dropdown correction
+function CandidateCard({ 
+  candidate, 
+  allCandidates, 
+  language, 
+  t, 
+  isApproved, 
+  isDropdownExpanded,
+  onApprove,
+  onReject,
+  onToggleDropdown,
+  onSelectAlternative,
+  onManualTrigger
+}) {
   const tierColor = TIER_COLORS[candidate.tier] || '#6b7280';
   const confidenceLabel = getConfidenceLabel(candidate.tier, language);
   const confidencePct = Math.round(candidate.confidence * 100);
 
-  // Localized prefix for "Is this..." (12px secondary text)
   const prefix = language === 'fil' ? 'Ito ba ay' : language === 'ceb' ? 'Kini ba ang' : 'Is this';
+  const changeText = language === 'fil' ? 'Baguhin' : language === 'ceb' ? 'Baguhon' : 'Change';
+
+  // FIXED: Remaining choices list stays completely static (it does not shift or jump on click)
+  let remainingChoices = allCandidates;
+  if (remainingChoices.length === 0 && allCandidates.length > 0) {
+    const fallbackMeds = medicineDatabase
+      .map(med => ({
+        ...med,
+        confidence: 0.5,
+        tier: 'LOW',
+        scanned_token: candidate.scanned_token
+      }));
+    remainingChoices = fallbackMeds.slice(0, 3);
+  }
+
+  const displayDosage = candidate.detected_dosage || candidate.strength;
 
   return (
-    <View style={[styles.candidateCard, isPrimary && styles.candidateCardPrimary]}>
-      {/* Visual Hierarchy: Prefix (12px) then Drug Name (15px) */}
-      <View style={{ marginBottom: 4 }}>
-        <Text style={styles.didYouMeanPrefix}>{prefix}...</Text>
-        <Text style={styles.candidateName}>{candidate.generic_name}</Text>
+    <View style={[styles.candidateCard, isApproved && styles.candidateCardApproved]}>
+      
+      {/* Checkbox Header */}
+      <View style={styles.shopeeRowHeader}>
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Text style={styles.didYouMeanPrefix}>{prefix}...</Text>
+          <Text style={styles.candidateName}>{candidate.brand_name}</Text>
+          <Text style={styles.candidateGenericSubtitle}>
+            ({candidate.generic_name} {displayDosage})
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.modalCheckbox, isApproved && styles.modalCheckboxActive]}
+          onPress={() => {
+            if (isApproved) {
+              onReject();
+            } else {
+              onApprove();
+            }
+          }}
+        >
+          {isApproved && <Ionicons name="checkmark" size={12} color="#ffffff" />}
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.confidenceBadge, { backgroundColor: tierColor + '1A', borderColor: tierColor }]}>
@@ -255,32 +358,72 @@ function CandidateCard({ candidate, language, t, isPrimary, onConfirm, onReject 
         </Text>
       </View>
 
-      {/* Metadata Section */}
       <View style={styles.metaContainer}>
-        {candidate.brand_name && (
-          <MetaRow icon="pricetag-outline" label={t.brandAlso} value={candidate.brand_name} />
-        )}
-        
         {candidate.strength && (
-          <MetaRow icon="medical-outline" label={t.dosage} value={candidate.strength} />
+          <MetaRow icon="medical-outline" label={t.dosage} value={displayDosage} />
         )}
-
         {candidate.active_ingredient && (
           <MetaRow icon="flask-outline" label={t.ingredient} value={candidate.active_ingredient} />
         )}
       </View>
 
+      {/* Approve vs Change Accordion Action Row */}
       <View style={styles.candidateActions}>
-        <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
-          <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+        <TouchableOpacity 
+          style={[styles.confirmBtn, isApproved && { backgroundColor: '#16a34a', borderColor: '#16a34a' }]} 
+          onPress={onApprove}
+        >
+          <Ionicons name="checkmark" size={14} color="#fff" style={{ marginRight: 4 }} />
           <Text style={styles.confirmBtnText}>{t.confirmBtn}</Text>
         </TouchableOpacity>
-        {isPrimary && (
-          <TouchableOpacity style={styles.rejectBtn} onPress={onReject}>
-            <Text style={styles.rejectBtnText}>{t.notThisBtn}</Text>
-          </TouchableOpacity>
-        )}
+        
+        <TouchableOpacity 
+          style={[styles.rejectBtn, isDropdownExpanded && { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]} 
+          onPress={onToggleDropdown}
+        >
+          <Ionicons name={isDropdownExpanded ? "chevron-up" : "chevron-down"} size={14} color={isDropdownExpanded ? "#b91c1c" : "#6b7280"} style={{ marginRight: 4 }} />
+          <Text style={[styles.rejectBtnText, isDropdownExpanded && { color: '#b91c1c', fontWeight: '700' }]}>
+            {changeText}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Collapsible Dropdown list of ranked alternative matches */}
+      {isDropdownExpanded && remainingChoices.length > 0 && (
+        <View style={styles.ocrDropdownMenu}>
+          <Text style={styles.ocrDropdownHeader}>
+            {language === 'fil' ? 'MGA POSIBLENG PILIIN (Naka-order):' : language === 'ceb' ? 'MGA POSIBLENG PILION:' : 'POSSIBLE MATCHES:'}
+          </Text>
+          
+          {remainingChoices.map((choice, index) => {
+            const choicePct = Math.round(choice.confidence * 100);
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.ocrDropdownItemRow}
+                onPress={() => onSelectAlternative(choice)}
+              >
+                <Ionicons name="ellipse-outline" size={12} color="#0d9488" style={{ marginRight: 8 }} />
+                <Text style={styles.ocrDropdownItemText}>
+                  {choice.generic_name} ({choice.brand_name || 'Generic'})
+                </Text>
+                <Text style={styles.ocrDropdownItemPct}>{choicePct}% Match</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Path A: "Wala rito ang aking gamot" dropdown item row that triggers the MANUAL fallback layout */}
+          <TouchableOpacity
+            style={[styles.ocrDropdownItemRow, { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4 }]}
+            onPress={onManualTrigger}
+          >
+            <Ionicons name="pencil-outline" size={12} color="#dc2626" style={{ marginRight: 8 }} />
+            <Text style={[styles.ocrDropdownItemText, { color: '#dc2626', fontWeight: '700' }]}>
+              {language === 'fil' ? '✏️ Wala rito ang aking gamot...' : language === 'ceb' ? '✏️ Wala diri ang akong tambal...' : '✏️ My medicine is not here...'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -304,18 +447,17 @@ function StateView({ icon, label, color }) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '85%', // Adjusted for 812px height chassis
+    maxHeight: '85%', 
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
   },
   header: {
@@ -328,21 +470,19 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f3f4f6',
   },
   headerTitle: {
-    fontSize: 18, // Hierarchy: Screen titles
+    fontSize: 18, 
     fontWeight: '700',
     color: '#111827',
   },
   content: {
     padding: 20,
   },
-
-  // Processing
   processingContainer: {
     alignItems: 'center',
     paddingVertical: 30,
   },
   processingLabel: {
-    fontSize: 14, // Hierarchy: Section headers
+    fontSize: 14, 
     fontWeight: '600',
     color: '#374151',
     marginBottom: 15,
@@ -359,19 +499,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb',
   },
   progressPct: {
-    fontSize: 12, // Hierarchy: Timestamp/minor text
+    fontSize: 12, 
     color: '#6b7280',
     marginTop: 8,
   },
-
-  // Candidate card
   didYouMeanHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
   },
   didYouMeanTitle: {
-    fontSize: 15, // Hierarchy: Primary label
+    fontSize: 15, 
     fontWeight: '700',
     marginLeft: 8,
   },
@@ -382,19 +520,44 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
-  candidateCardPrimary: {
+  candidateCardApproved: {
+    borderColor: '#16a34a',
+    backgroundColor: '#f0fdf4', 
+  },
+  shopeeRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     borderColor: '#2563eb',
-    backgroundColor: '#f8faff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  modalCheckboxActive: {
+    backgroundColor: '#16a34a',
+    borderColor: '#16a34a',
   },
   didYouMeanPrefix: {
-    fontSize: 12, // Hierarchy: Timestamp size for secondary info
+    fontSize: 12, 
     color: '#6b7280',
     marginBottom: 2,
   },
   candidateName: {
-    fontSize: 15, // Hierarchy: Card primary label
+    fontSize: 15, 
     fontWeight: '800',
     color: '#111827',
+  },
+  candidateGenericSubtitle: {
+    fontSize: 13, // Card secondary label: 13sp
+    color: '#4b5563',
+    marginTop: 2,
   },
   confidenceBadge: {
     flexDirection: 'row',
@@ -414,7 +577,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   confidenceText: {
-    fontSize: 11, // Hierarchy: Badge/tag text
+    fontSize: 11, 
     fontWeight: '700',
   },
   metaContainer: {
@@ -426,7 +589,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   metaLabel: {
-    fontSize: 12, // Hierarchy: Detailed meta
+    fontSize: 12, 
     color: '#6b7280',
   },
   metaValue: {
@@ -437,6 +600,7 @@ const styles = StyleSheet.create({
   candidateActions: {
     flexDirection: 'row',
     marginTop: 4,
+    gap: 8,
   },
   confirmBtn: {
     flex: 1,
@@ -446,29 +610,145 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb',
     borderRadius: 8,
     paddingVertical: 10,
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#2563eb',
   },
   confirmBtnText: {
     color: '#ffffff',
-    fontSize: 13, // Hierarchy: Button text
+    fontSize: 13, 
     fontWeight: '700',
   },
   rejectBtn: {
-    paddingHorizontal: 12,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#d1d5db',
   },
   rejectBtnText: {
-    fontSize: 12, // Hierarchy: Small button text
+    fontSize: 12, 
     color: '#6b7280',
   },
+  manualBtn: {
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center', 
+  },
   manualBtnText: {
-    fontSize: 13, // Hierarchy: Body descriptions
+    fontSize: 13, 
     color: '#2563eb',
     textAlign: 'center',
-    marginTop: 10,
     textDecorationLine: 'underline',
+  },
+  primaryActionButton: {
+    backgroundColor: '#0d9488',
+    borderRadius: 14,
+    height: 56, 
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 18,
+    width: '100%',
+  },
+  disabledButton: {
+    backgroundColor: '#9ca3af',
+  },
+  primaryActionText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  stateView: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  stateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  noMatchContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    width: '100%',
+  },
+  noMatchTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  noMatchSub: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  rescanBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    height: 56, 
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center', 
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  rescanBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+    marginLeft: 6,
+  },
+  manualFallbackBtn: {
+    height: 48,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center', 
+  },
+  manualFallbackText: {
+    fontSize: 13,
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  ocrDropdownMenu: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    width: '100%',
+  },
+  ocrDropdownHeader: {
+    fontSize: 11, 
+    fontWeight: '800',
+    color: '#4b5563',
+    marginBottom: 8,
+  },
+  ocrDropdownItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    width: '100%',
+  },
+  ocrDropdownItemText: {
+    fontSize: 13, 
+    color: '#1f2937',
+    fontWeight: '600',
+    flex: 1,
+  },
+  ocrDropdownItemPct: {
+    fontSize: 11, 
+    color: '#0d9488',
+    fontWeight: '700',
   },
 });

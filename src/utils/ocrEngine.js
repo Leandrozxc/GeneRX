@@ -9,7 +9,6 @@ export const processImageForOCR = async (imageUri) => {
   // ─── LAPTOP / WEB LOGIC ───────────────────────────────────────────────────
   if (Platform.OS === 'web') {
     try {
-      // Create the worker locally
       const worker = await createWorker('eng', 1, {
         workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@v5.0.0/dist/worker.min.js',
         langPath: 'https://tessdata.projectnaptha.com/4.0.0',
@@ -19,8 +18,8 @@ export const processImageForOCR = async (imageUri) => {
       const result = await worker.recognize(imageUri);
       await worker.terminate();
 
-      // Ensure we call the helper function defined below
-      return parseMedicineTokens(result.data.text);
+      // FIXED: Return raw line arrays to preserve physical layout structures
+      return parseMedicineLines(result.data.text);
     } catch (error) {
       console.error("Web OCR Error:", error);
       return [];
@@ -33,30 +32,21 @@ export const processImageForOCR = async (imageUri) => {
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Return mock tokens to match your Levothyroxine test case
-    return ["Thydin", "Levothyroxine"];
+    // FIXED: Return simulated raw lines containing brand, generic, and strength to test our parser!
+    return [
+      "Levothyroxine 100mcg",
+      "(Thydin)"
+    ];
   }
 };
 
 /**
- * HELPER: parseMedicineTokens
- * This was missing! It cleans the raw text from Tesseract
+ * HELPER: parseMedicineLines
+ * Splits extracted text by newlines to group layout structures into individual entities
  */
-const parseMedicineTokens = (text) => {
+const parseMedicineLines = (text) => {
   if (!text) return [];
-
-  // Remove common noisy "prescription" words
-  const noise = [/tablet/gi, /capsule/gi, /mg/gi, /mcg/gi, /qty/gi, /signa/gi, /daily/gi, /[\d]/g];
-  let cleaned = text;
-  
-  noise.forEach(reg => {
-    cleaned = cleaned.replace(reg, '');
-  });
-
-  // Split into words, remove short ones, and return unique values
-  const tokens = cleaned.split(/\s+/)
-    .map(word => word.trim())
-    .filter(word => word.length > 3);
-
-  return [...new Set(tokens)];
+  return text.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 2); // Ignore empty or single-character noise lines
 };
