@@ -18,17 +18,10 @@ export const isRecentlyVerified = (dateStr) => {
 export const DrugModel = {
   getAllDrugs: () => mockData.drugs,
 
-  getMergedPharmacies: (localOverrides = []) => {
-    return mockData.pharmacies.map(pharmacy => {
-      const override = localOverrides.find(o => o.id === pharmacy.id);
-      if (override) {
-        return { ...pharmacy, ...override };
-      }
-      return pharmacy;
-    });
-  },
+  // FIXED: Simplified to read directly from data.json (no more crowdsourced overrides)
+  getAllPharmacies: () => mockData.pharmacies,
   
-  // FIXED: Crash-proof generic/brand name finder
+  // Upgraded to be 100% crash-proof against undefined, null, objects, or strings
   findDrugByName: (query) => {
     if (!query) return null;
     

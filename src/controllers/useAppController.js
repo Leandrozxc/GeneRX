@@ -8,15 +8,8 @@ export const useAppController = () => {
   const [selectedDrug, setSelectedDrug] = useState(null);
   const [reportedPrices, setReportedPrices] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [refillDaysLeft, setRefillDaysLeft] = useState(4);
-  const [logs, setLogs] = useState([
-    { name: 'Lola Maria (Grandmother)', drug: 'Amlodipine 5mg', status: 'Taken', time: '8:00 AM' },
-    { name: 'Papa (Father)', drug: 'Metformin 500mg', status: 'Missed', time: '12:30 PM' },
-  ]);
 
   const [recentlyVerifiedOnly, setRecentlyVerifiedOnly] = useState(false);
-  const [localPharmacyOverrides, setLocalPharmacyOverrides] = useState([]);
-  const [partnerModalVisible, setPartnerModalVisible] = useState(false);
 
   // Group 3: Prescription Gating & Pharmacist Screen States
   const [rxConfirmed, setRxConfirmed] = useState(false);
@@ -49,6 +42,23 @@ export const useAppController = () => {
     }
   };
 
+  // Trigger selection when an autocomplete suggestion is tapped
+  const handleSelectSuggestion = (drug) => {
+    if (!drug) return;
+    
+    setSearchQuery(drug.brand_name);
+    setSelectedDrug(drug);
+    setRxConfirmed(false);
+
+    // Auto-select cheapest generic brand as default
+    if (drug.alternatives && drug.alternatives.length > 0) {
+      const cheapest = drug.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
+      setSelectedGenericBrand(cheapest);
+    } else {
+      setSelectedGenericBrand(null);
+    }
+  };
+
   const triggerMockOCR = () => {
     setIsScanning(true);
     setSelectedDrug(null);
@@ -72,7 +82,6 @@ export const useAppController = () => {
   // BASKET UTILITY ACTION HANDLERS (Controllers)
   // ==========================================
   
-  // FIXED: Added "silent" parameter to bypass single alerts during batch loops
   const handleAddToBasket = (drug, alternative, silent = false) => {
     if (!drug || !alternative) return;
 
@@ -124,56 +133,11 @@ export const useAppController = () => {
     else Alert.alert("Report Submitted", message);
   };
 
-  const handleUpdatePharmacyStock = (pharmacyId, drugId, stockStatus) => {
-    const currentPharmacies = DrugModel.getMergedPharmacies(localPharmacyOverrides);
-    const pharmacy = currentPharmacies.find(p => p.id === pharmacyId);
-    if (!pharmacy) return;
-
-    const updatedStock = { ...pharmacy.stock };
-    const drugPrice = drugId === '1' ? 2.00 : drugId === '2' ? 2.20 : drugId === '3' ? 4.00 : 9.50;
-
-    updatedStock[drugId] = {
-      available: stockStatus === 'in_stock' || stockStatus === 'low_stock',
-      price: drugPrice,
-      status: stockStatus,
-      available_brands: pharmacy.stock[drugId]?.available_brands || []
-    };
-
-    const newOverride = {
-      id: pharmacyId,
-      last_verified: "2026-06-13",
-      availability_status: "confirmed",
-      stock: updatedStock
-    };
-
-    setLocalPharmacyOverrides(prev => {
-      const filtered = prev.filter(p => p.id !== pharmacyId);
-      return [...filtered, newOverride];
-    });
-
-    setPartnerModalVisible(false);
-    const message = "Pharmacy stock successfully updated.";
-    if (Platform.OS === 'web') alert(message);
-    else Alert.alert("Registry Updated", message);
-  };
-
-  const getIsNearestPharmacyVerified = () => {
-    if (!selectedDrug) return false;
-    const carryingPharmacies = resolvedPharmacies.filter(p => p.stock[selectedDrug.id]?.available);
-    if (carryingPharmacies.length === 0) return false;
-    return carryingPharmacies[0].verified === true;
-  };
-
-  // ==========================================
-  // MULTI-ITEM PHARMACY INTERSECTION FILTER
-  // ==========================================
-  const resolvedPharmacies = DrugModel.getMergedPharmacies(localPharmacyOverrides).filter(pharmacy => {
+  const resolvedPharmacies = DrugModel.getAllPharmacies().filter(pharmacy => {
     if (recentlyVerifiedOnly && !isRecentlyVerified(pharmacy.last_verified)) {
       return false;
     }
 
-    // MULTI-ITEM CHECK: A pharmacy is ONLY returned if it has stock of 
-    // EVERY single specific generic brand checked in your active prescription basket list.
     if (prescriptionBasket.length > 0) {
       return prescriptionBasket.every(item => {
         const drugStock = pharmacy.stock[item.drugId];
@@ -194,6 +158,24 @@ export const useAppController = () => {
     setPharmacistModeVisible(true);
   };
 
+  const getIsNearestPharmacyVerified = () => {
+    if (!selectedDrug) return false;
+    const carryingPharmacies = resolvedPharmacies.filter(p => p.stock[selectedDrug.id]?.available);
+    if (carryingPharmacies.length === 0) return false;
+    return carryingPharmacies[0].verified === true;
+  };
+
+  // Autocomplete Suggestions Filter
+  const getSearchSuggestions = () => {
+    if (!searchQuery || !searchQuery.trim()) return [];
+    const normalized = searchQuery.toLowerCase().trim();
+    
+    return DrugModel.getAllDrugs().filter(drug => 
+      drug.brand_name.toLowerCase().includes(normalized) ||
+      drug.generic_name.toLowerCase().includes(normalized)
+    );
+  };
+
   return {
     currentScreen,
     setCurrentScreen,
@@ -202,8 +184,6 @@ export const useAppController = () => {
     setSelectedDrug,
     reportedPrices,
     isScanning,
-    refillDaysLeft,
-    logs,
     handleSearch,
     triggerMockOCR,
     handleReportPrice,
@@ -211,11 +191,7 @@ export const useAppController = () => {
     pharmacies: resolvedPharmacies,
     recentlyVerifiedOnly,
     setRecentlyVerifiedOnly,
-    partnerModalVisible,
-    setPartnerModalVisible,
-    handleUpdatePharmacyStock,
     allOriginalDrugs: DrugModel.getAllDrugs(),
-    allOriginalPharmacies: DrugModel.getMergedPharmacies(localPharmacyOverrides),
 
     isNarrowTherapeutic,
     rxConfirmed,
@@ -229,12 +205,14 @@ export const useAppController = () => {
     setAboutModalVisible,
     isNearestPharmacyVerified: getIsNearestPharmacyVerified(),
 
-    // Shopee-style exports
     selectedGenericBrand,
     setSelectedGenericBrand,
     prescriptionBasket,
     handleAddToBasket,
     handleRemoveFromBasket,
-    basketSummary: getBasketSummary()
+    basketSummary: getBasketSummary(),
+    
+    searchSuggestions: getSearchSuggestions(),
+    handleSelectSuggestion
   };
 };

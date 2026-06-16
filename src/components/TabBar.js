@@ -16,7 +16,6 @@ export default function TabBar({ currentScreen, onNavigate }) {
         <Text style={[styles.tabLabel, currentScreen === 'search' && styles.activeTabLabel]}>{t.tabSearch}</Text>
       </TouchableOpacity>
 
-      {/* Step 3: Localized Alistahan Prescription Basket Tab */}
       <TouchableOpacity 
         style={[styles.tabItem, currentScreen === 'list' && styles.activeTabItem]}
         onPress={() => onNavigate('list')}
@@ -31,14 +30,6 @@ export default function TabBar({ currentScreen, onNavigate }) {
       >
         <Ionicons name="map" size={18} color={currentScreen === 'map' ? '#0D9488' : '#888'} />
         <Text style={[styles.tabLabel, currentScreen === 'map' && styles.activeTabLabel]}>{t.tabMap}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.tabItem, currentScreen === 'adherence' && styles.activeTabItem]}
-        onPress={() => onNavigate('adherence')}
-      >
-        <Ionicons name="heart" size={18} color={currentScreen === 'adherence' ? '#0D9488' : '#888'} />
-        <Text style={[styles.tabLabel, currentScreen === 'adherence' && styles.activeTabLabel]}>{t.tabAdherence}</Text>
       </TouchableOpacity>
     </View>
   );

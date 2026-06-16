@@ -7,7 +7,7 @@ export const LANGUAGES = {
       tabSearch: 'Maghanap',
       tabMap: 'Botika',
       tabAdherence: 'Gamot Ko',
-      tabList: 'Alistahan', // New Cart Tab label
+      tabList: 'Alistahan', 
       
       // Search Screen
       searchPlaceholder: 'I-type ang pangalan ng gamot...',
@@ -19,9 +19,9 @@ export const LANGUAGES = {
       moreDetails: 'Higit pang Detalye',
       hideDetails: 'Itago ang Detalye',
       reportPrice: 'Iulat ang Mali',
-      addToList: 'Idagdag sa Listahan', // New Add to Cart button label
-      removeFromList: 'Alisin sa Listahan', // New Remove button label
-      listEmpty: 'Walang laman ang iyong Alistahan.', // New empty cart state
+      addToList: 'Idagdag sa Listahan', 
+      removeFromList: 'Alisin sa Listahan', 
+      listEmpty: 'Walang laman ang iyong Alistahan.', 
       
       // Result Card Labels
       labelWhatFor: 'Para saan ito?',
@@ -37,6 +37,16 @@ export const LANGUAGES = {
       labelLastUpdated: 'Huling na-update',
       labelSource: 'Pinagmulan ng Impormasyon',
       
+      // Group 5: New Localized Checkout Labels
+      ocrProductHeaderSubtitle: 'Pumili ng brand para sa bawat gamot na nakita:',
+      labelActive: 'Aktibo',
+      labelSummaryTitle: 'Kabuuang Detalye',
+      labelBrandedTotal: 'Kabuuang Branded',
+      labelGenericTotal: 'Kabuuang Generic',
+      labelTotalSavings: 'Kabuuang Tipid',
+      labelStockStatusAtPrice: 'ESTADO NG STOCK AT PRESYO',
+      labelBrandedPrice: 'Presyo ng Branded',
+
       // Warnings
       ntiWarning: 'Babala: Ito ay isang Espesyal na Gamot. Kumonsulta muna sa iyong parmaseutiko o doktor bago palitan ng katumbas na gamot.',
       advisoryBar: 'Palaging kumpirmahin sa iyong parmaseutiko o doktor bago palitan ang iyong gamot.',
@@ -109,6 +119,17 @@ export const LANGUAGES = {
       labelVerified: 'Official Partner',
       labelLastUpdated: 'Last updated',
       labelSource: 'Information Source',
+      
+      // Group 5: New Localized Checkout Labels
+      ocrProductHeaderSubtitle: 'Select a brand for each detected medicine:',
+      labelActive: 'Active',
+      labelSummaryTitle: 'Total Summary',
+      labelBrandedTotal: 'Total Branded',
+      labelGenericTotal: 'Total Generic',
+      labelTotalSavings: 'Total Savings',
+      labelStockStatusAtPrice: 'STOCK STATUS AND PRICE',
+      labelBrandedPrice: 'Branded Price',
+
       ntiWarning: 'Warning: This is a Special Medicine. Please consult your pharmacist or doctor before switching to a generic alternative.',
       advisoryBar: 'Always confirm with your pharmacist or doctor before switching your medicine.',
       rxGateMessage: 'Do you have a valid prescription for this medicine?',
@@ -170,6 +191,17 @@ export const LANGUAGES = {
       labelVerified: 'Opisyal nga Kauban',
       labelLastUpdated: 'Katapusang gi-update',
       labelSource: 'Tinubdan sa Impormasyon',
+      
+      // Group 5: New Localized Checkout Labels
+      ocrProductHeaderSubtitle: 'Pilia ang brand para sa matag tambal nga nakit-an:',
+      labelActive: 'Aktibo',
+      labelSummaryTitle: 'Kinatibuk-ang Detalye',
+      labelBrandedTotal: 'Tanan nga Branded',
+      labelGenericTotal: 'Tanan nga Generic',
+      labelTotalSavings: 'Kinatibuk-ang Tipid',
+      labelStockStatusAtPrice: 'ESTADO SA STOCK UG PRESYO',
+      labelBrandedPrice: 'Presyo sa Branded',
+
       ntiWarning: 'Pasidaan: Espesyal nga Tambal kini. Mangonsulta una sa imong parmaseutiko o doktor sa dili pa palitan og katumbas nga tambal.',
       advisoryBar: 'Kanunay nga kumpirmahon sa imong parmaseutiko o doktor sa dili pa palitan ang imong tambal.',
       rxGateMessage: 'Naa ba kay valid nga reseta para sa tambal nga kini?',

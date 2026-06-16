@@ -16,7 +16,6 @@ import AboutModal from './src/components/AboutModal';
 import SearchScreen from './src/screens/SearchScreen';
 import ListScreen from './src/screens/ListScreen';
 import MapScreen from './src/screens/MapScreen';
-import AdherenceScreen from './src/screens/AdherenceScreen';
 
 export default function App() {
   const controller = useAppController();
@@ -59,6 +58,9 @@ export default function App() {
                 setSelectedGenericBrand={controller.setSelectedGenericBrand}
                 savingsSummary={controller.basketSummary}
                 handleAddToBasket={controller.handleAddToBasket}
+
+                searchSuggestions={controller.searchSuggestions}
+                onSelectSuggestion={controller.handleSelectSuggestion}
               />
             )}
 
@@ -80,25 +82,7 @@ export default function App() {
                 selectedDrug={controller.selectedDrug}
                 recentlyVerifiedOnly={controller.recentlyVerifiedOnly}
                 setRecentlyVerifiedOnly={controller.setRecentlyVerifiedOnly}
-                partnerModalVisible={controller.partnerModalVisible}
-                setPartnerModalVisible={controller.setPartnerModalVisible}
-                handleUpdatePharmacyStock={controller.handleUpdatePharmacyStock}
-                allOriginalDrugs={controller.allOriginalDrugs}
-                allOriginalPharmacies={controller.allOriginalPharmacies}
                 basket={controller.prescriptionBasket}
-              />
-            )}
-
-            {controller.currentScreen === 'adherence' && (
-              <AdherenceScreen 
-                refillDaysLeft={controller.refillDaysLeft}
-                logs={controller.logs}
-                onLocateRefillStock={() => {
-                  controller.setCurrentScreen('map');
-                  if (controller.pharmacies.length > 0) {
-                    controller.handleSearch('Norvasc');
-                  }
-                }}
               />
             )}
           </ScrollView>

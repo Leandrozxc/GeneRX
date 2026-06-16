@@ -18,7 +18,7 @@
       "alternatives": [
         { "manufacturer": "RiteMed", "price": 2.50, "fda_id": "DRP-987", "last_updated": "2026-06-11", "source_type": "pharmacy" },
         { "manufacturer": "The Generics Pharmacy (TGP)", "price": 2.00, "fda_id": "DRP-654", "last_updated": "2026-06-12", "source_type": "mdrp" },
-        { "manufacturer": "Pharex", "price": 3.50, "fda_id": "DRP-321", "last_updated": "2026-06-08", "source_type": "community" }
+        { "manufacturer": "Pharex", "price": 3.50, "fda_id": "DRP-321", "last_updated": "2026-06-08", "source_type": "pharmacy" }
       ]
     },
     {
@@ -39,7 +39,7 @@
       "alternatives": [
         { "manufacturer": "RiteMed", "price": 2.00, "fda_id": "DRP-111", "last_updated": "2026-06-10", "source_type": "mdrp" },
         { "manufacturer": "Generika", "price": 2.20, "fda_id": "DRP-222", "last_updated": "2026-06-12", "source_type": "pharmacy" },
-        { "manufacturer": "Unilab (Biomedis)", "price": 3.00, "fda_id": "DRP-333", "last_updated": "2026-05-28", "source_type": "community" }
+        { "manufacturer": "Unilab (Biomedis)", "price": 3.00, "fda_id": "DRP-333", "last_updated": "2026-05-28", "source_type": "pharmacy" }
       ]
     },
     {
@@ -59,7 +59,7 @@
       "useDescription_ceb": "Tambal alang sa taas nga presyon sa dugo ug pagpanalipod sa kidney.",
       "alternatives": [
         { "manufacturer": "TGP", "price": 4.00, "fda_id": "DRP-444", "last_updated": "2026-06-13", "source_type": "mdrp" },
-        { "manufacturer": "Pharex", "price": 4.50, "fda_id": "DRP-555", "last_updated": "2026-06-05", "source_type": "community" },
+        { "manufacturer": "Pharex", "price": 4.50, "fda_id": "DRP-555", "last_updated": "2026-06-05", "source_type": "pharmacy" },
         { "manufacturer": "RiteMed", "price": 5.00, "fda_id": "DRP-666", "last_updated": "2026-06-11", "source_type": "pharmacy" }
       ]
     },

@@ -25,7 +25,6 @@ export default function ListScreen({
       <Text style={styles.sectionTitle}>{t.tabList}</Text>
       
       {basket.length === 0 ? (
-        /* Empty Basket State Layout (Strict FIX 6 scales) */
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={48} color="#9CA3AF" style={{ marginBottom: 12 }} />
           <Text style={styles.emptyText}>{t.listEmpty}</Text>
@@ -38,7 +37,6 @@ export default function ListScreen({
           </TouchableOpacity>
         </View>
       ) : (
-        /* Multi-Item Substitution checkout view */
         <View style={{ width: '100%' }}>
           <Text style={styles.sectionSubtitle}>
             {t.mapDisclaimer}
@@ -60,9 +58,9 @@ export default function ListScreen({
                 </View>
               </View>
 
-              <Text style={styles.pharmacyAddress}>Branded Price: ₱{item.brandedPrice.toFixed(2)}</Text>
+              {/* FIXED: Localized Branded Price label */}
+              <Text style={styles.pharmacyAddress}>{t.labelBrandedPrice}: ₱{item.brandedPrice.toFixed(2)}</Text>
 
-              {/* Row spacing separator */}
               <View style={{ marginBottom: 6 }} />
 
               <View style={styles.stockStatusContainer}>
@@ -79,20 +77,24 @@ export default function ListScreen({
 
           {/* Cumulative Shopee Checkout Summary card */}
           <View style={styles.shopeeSummaryCard}>
-            <Text style={styles.summaryTitle}>{t.pharmacistTitle.toUpperCase()}</Text>
+            {/* FIXED: Localized Card Header */}
+            <Text style={styles.summaryTitle}>{t.labelSummaryTitle}</Text>
             
             <View style={styles.summaryItemRow}>
-              <Text style={styles.summaryItemLabel}>{t.moreDetails} (Branded Total):</Text>
+              {/* FIXED: Localized Label */}
+              <Text style={styles.summaryItemLabel}>{t.labelBrandedTotal}:</Text>
               <Text style={styles.summaryItemValue}>₱{basketSummary.brandedCost.toFixed(2)}</Text>
             </View>
 
             <View style={styles.summaryItemRow}>
-              <Text style={styles.summaryItemLabel}>{t.tabList} (Generic Selected):</Text>
+              {/* FIXED: Localized Label */}
+              <Text style={styles.summaryItemLabel}>{t.labelGenericTotal}:</Text>
               <Text style={styles.summaryItemValue}>₱{basketSummary.genericCost.toFixed(2)}</Text>
             </View>
 
             <View style={styles.summarySavingsRow}>
-              <Text style={styles.savingsLabel}>Kabuuang {getSavingsLabel()}:</Text>
+              {/* FIXED: Localized Label */}
+              <Text style={styles.savingsLabel}>{t.labelTotalSavings}:</Text>
               <Text style={styles.savingsValue}>₱{basketSummary.savings.toFixed(2)} ({basketSummary.percentage}% {getSavingsLabel()})</Text>
             </View>
           </View>
@@ -157,7 +159,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  // Strict FIX 5: Pharmacy card style rules
   pharmacyCard: {
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -168,7 +169,6 @@ const styles = StyleSheet.create({
     borderColor: '#d4d1ca',
     width: '100%',
   },
-  // FIX 1: Header title row
   pharmacyHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -206,11 +206,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    fontSize: 11, // Tag text: 11
+    fontSize: 11, 
     fontWeight: '700',
   },
   pharmacyAddress: {
-    fontSize: 13, // Card secondary: 13
+    fontSize: 13, 
     color: '#6B7280',
     marginBottom: 6,
   },
@@ -231,12 +231,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   removeButtonText: {
-    fontSize: 12, // Button text (small): 12
+    fontSize: 12, 
     fontWeight: '700',
     color: '#EF4444',
     marginLeft: 4,
   },
-  // Cumulative checkout card styles
   shopeeSummaryCard: {
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
@@ -268,7 +267,7 @@ const styles = StyleSheet.create({
   },
   summarySavingsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', 
     borderTopWidth: 1,
     borderTopColor: '#DBEAFE',
     paddingTop: 6,

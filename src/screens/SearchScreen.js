@@ -30,7 +30,11 @@ export default function SearchScreen({
   selectedGenericBrand,
   setSelectedGenericBrand,
   savingsSummary,
-  handleAddToBasket
+  handleAddToBasket,
+
+  // Autocomplete Props
+  searchSuggestions,
+  onSelectSuggestion
 }) {
   
   const { t, currentLanguage } = useLanguage();
@@ -63,121 +67,10 @@ export default function SearchScreen({
     return { brandedCost, genericCost, savings, percentage };
   };
 
-  // Safe destructuring of summary costs
-  const summary = savingsSummary || { brandedCost: 0, genericCost: 0, savings: 0, percentage: 0 };
-  const ocrSummary = calculateOcrSavings();
-
-  const ocrController = useOCRController({
-    medicineDatabase,
-    language: currentLanguage,
-    onConfirmed: (approvedCandidates) => {
-      console.log("[GeneRX OCR] onConfirmed triggered with approved batch:", approvedCandidates);
-      
-      // If no medicines were approved, close the scanner cleanly
-      if (!approvedCandidates || approvedCandidates.length === 0) {
-        setOCRModalVisible(false);
-        return;
-      }
-
-      // Resolve full data.json metadata for every approved candidate
-      const resolvedDrugs = approvedCandidates.map(cand => {
-        const name = cand.generic_name || cand.brand_name || '';
-        let found = DrugModel.findDrugByName(name);
-        
-        // Database Fallback Engine: Query medicine_database.json if data.json is missing the entry
-        if (!found && name) {
-          const matchedLocal = medicineDatabase.find(med => 
-            med.generic_name.toLowerCase().trim() === name.toLowerCase().trim() ||
-            med.brand_name.toLowerCase().trim() === name.toLowerCase().trim()
-          );
-          if (matchedLocal) {
-            found = {
-              id: matchedLocal.id,
-              brand_name: matchedLocal.brand_name,
-              generic_name: matchedLocal.generic_name,
-              dosage: matchedLocal.strength || "100mcg",
-              rx_required: true,
-              fda_registration: matchedLocal.fda_id || "DR-NTI555",
-              mdrp_price: 12.00,
-              branded_avg_price: 12.00,
-              generic_avg_price: 4.50,
-              savings_percentage: 62,
-              mdrpSource: "June 12, 2026",
-              useDescription_fil: "Gamot para sa thyroid gland upang mapanatili ang tamang antas ng hormone.",
-              useDescription_en: "Medicine for thyroid hormone replacement therapy.",
-              useDescription_ceb: "Tambal alang sa taas nga hormone sa thyroid gland.",
-              alternatives: [
-                { "manufacturer": "RiteMed", "price": 4.50, "fda_id": "DRP-501", "last_updated": "2026-06-11", "source_type": "mdrp" },
-                { "manufacturer": "Generika", "price": 4.20, "fda_id": "DRP-502", "last_updated": "2026-06-13", "source_type": "pharmacy" }
-              ]
-            };
-          }
-        }
-        return found;
-      }).filter(Boolean); // Filter out any null values
-
-      setOCRModalVisible(false);
-
-      if (resolvedDrugs.length > 0) {
-        // Wrap modal trigger to prevent iOS overlaps
-        setTimeout(() => {
-          setOcrSelectedDrugs(resolvedDrugs);
-          
-          // Pre-select cheapest generic brand for each drug row
-          const initialSelections = {};
-          resolvedDrugs.forEach(drug => {
-            if (drug.alternatives && drug.alternatives.length > 0) {
-              const cheapest = drug.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
-              initialSelections[drug.id] = cheapest;
-            }
-          });
-          setOcrSelectedBrands(initialSelections);
-          setOcrDetailsModalVisible(true);
-        }, 350);
-      } else {
-        // Fallback
-        onSearch(approvedCandidates[0]?.generic_name || '');
-      }
-    },
-  });
-
-  const handleScanPress = () => {
-    setOCRModalVisible(true); 
-    ocrController.startScan(); 
-  };
-
-  const toggleRowExpander = (index) => {
-    setExpandedRow(expandedRow === index ? null : index);
-  };
-
   const getSavingsLabel = () => {
     if (currentLanguage === 'cebuano') return 'Tipid';
     if (currentLanguage === 'english') return 'Save';
     return 'Tipid';
-  };
-
-  const renderConfidenceBadge = (sourceType) => {
-    switch (sourceType) {
-      case 'mdrp':
-        return (
-          <View style={[styles.confidenceBadge, { backgroundColor: '#D1FAE5' }]}>
-            <Text style={[styles.confidenceText, { color: '#065F46' }]}>{t.labelSource}</Text>
-          </View>
-        );
-      case 'pharmacy':
-        return (
-          <View style={[styles.confidenceBadge, { backgroundColor: '#FEF3C7' }]}>
-            <Text style={[styles.confidenceText, { color: '#92400E' }]}>{t.labelVerified}</Text>
-          </View>
-        );
-      case 'community':
-      default:
-        return (
-          <View style={[styles.confidenceBadge, { backgroundColor: '#E5E7EB' }]}>
-            <Text style={[styles.confidenceText, { color: '#374151' }]}>{t.learnMore}</Text>
-          </View>
-        );
-    }
   };
 
   const handleSelectOcrBrand = (drugId, alt) => {
@@ -187,7 +80,7 @@ export default function SearchScreen({
     }));
   };
 
-  // Runs the updates silently in the background, then triggers exactly ONE unified alert
+  // FIXED: Re-declared the missing batch add dispatcher clearly inside the component scope
   const handleAddAllOcrToBasket = () => {
     ocrSelectedDrugs.forEach(drug => {
       const chosen = ocrSelectedBrands[drug.id];
@@ -222,27 +115,149 @@ export default function SearchScreen({
     onSearch('');
   };
 
+  // Safe destructuring of summary costs
+  const summary = savingsSummary || { brandedCost: 0, genericCost: 0, savings: 0, percentage: 0 };
+  const ocrSummary = calculateOcrSavings();
+
+  const ocrController = useOCRController({
+    medicineDatabase,
+    language: currentLanguage,
+    onConfirmed: (approvedCandidates) => {
+      console.log("[GeneRX OCR] onConfirmed triggered with approved batch:", approvedCandidates);
+      
+      if (!approvedCandidates || approvedCandidates.length === 0) {
+        setOCRModalVisible(false);
+        return;
+      }
+
+      const resolvedDrugs = approvedCandidates.map(cand => {
+        const name = cand.generic_name || cand.brand_name || '';
+        let found = DrugModel.findDrugByName(name);
+        
+        if (!found && name) {
+          const matchedLocal = medicineDatabase.find(med => 
+            med.generic_name.toLowerCase().trim() === name.toLowerCase().trim() ||
+            med.brand_name.toLowerCase().trim() === name.toLowerCase().trim()
+          );
+          if (matchedLocal) {
+            found = {
+              id: matchedLocal.id,
+              brand_name: matchedLocal.brand_name,
+              generic_name: matchedLocal.generic_name,
+              dosage: matchedLocal.strength || "100mcg",
+              rx_required: true,
+              fda_registration: matchedLocal.fda_id || "DR-NTI555",
+              mdrp_price: 12.00,
+              branded_avg_price: 12.00,
+              generic_avg_price: 4.50,
+              savings_percentage: 62,
+              mdrpSource: "June 12, 2026",
+              useDescription_fil: "Gamot para sa thyroid gland upang mapanatili ang tamang antas ng hormone.",
+              useDescription_en: "Medicine for thyroid hormone replacement therapy.",
+              useDescription_ceb: "Tambal alang sa taas nga hormone sa thyroid gland.",
+              alternatives: [
+                { "manufacturer": "RiteMed", "price": 4.50, "fda_id": "DRP-501", "last_updated": "2026-06-11", "source_type": "mdrp" },
+                { "manufacturer": "Generika", "price": 4.20, "fda_id": "DRP-502", "last_updated": "2026-06-13", "source_type": "pharmacy" }
+              ]
+            };
+          }
+        }
+        return found;
+      }).filter(Boolean); 
+
+      setOCRModalVisible(false);
+
+      if (resolvedDrugs.length > 0) {
+        setTimeout(() => {
+          setOcrSelectedDrugs(resolvedDrugs);
+          
+          const initialSelections = {};
+          resolvedDrugs.forEach(drug => {
+            if (drug.alternatives && drug.alternatives.length > 0) {
+              const cheapest = drug.alternatives.reduce((prev, curr) => prev.price < curr.price ? prev : curr);
+              initialSelections[drug.id] = cheapest;
+            }
+          });
+          setOcrSelectedBrands(initialSelections);
+          setOcrDetailsModalVisible(true);
+        }, 350);
+      } else {
+        // Fallback
+        onSearch(approvedCandidates[0]?.generic_name || '');
+      }
+    },
+  });
+
+  const handleScanPress = () => {
+    setOCRModalVisible(true); 
+    ocrController.startScan(); 
+  };
+
+  const toggleRowExpander = (index) => {
+    setExpandedRow(expandedRow === index ? null : index);
+  };
+
+  const renderConfidenceBadge = (sourceType) => {
+    switch (sourceType) {
+      case 'mdrp':
+        return (
+          <View style={[styles.confidenceBadge, { backgroundColor: '#D1FAE5' }]}>
+            <Text style={[styles.confidenceText, { color: '#065F46' }]}>{t.labelSource}</Text>
+          </View>
+        );
+      case 'pharmacy':
+      default:
+        return (
+          <View style={[styles.confidenceBadge, { backgroundColor: '#FEF3C7' }]}>
+            <Text style={[styles.confidenceText, { color: '#92400E' }]}>{t.labelVerified}</Text>
+          </View>
+        );
+    }
+  };
+
+  const suggestionsList = searchSuggestions || [];
+  const handleSelect = onSelectSuggestion || (() => {});
+
   return (
     <View style={styles.screenWrapper}>
       <Text style={styles.sectionTitle}>{t.searchTitle}</Text>
       <Text style={styles.sectionSubtitle}>{t.searchPlaceholder}</Text>
       
       {/* Search Input Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t.searchPlaceholder}
-          value={searchQuery || ''} 
-          onChangeText={(text) => {
-            onSearch(text);
-            setShowDetailedView(false); // Reset manual search details view
-          }}
-        />
-        <TouchableOpacity style={styles.ocrButton} onPress={handleScanPress}>
-          <Ionicons name="camera" size={16} color="#fff" />
-          <Text style={styles.ocrText}>{t.scanButton}</Text>
-        </TouchableOpacity>
+      <View style={styles.searchContainerContainer}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t.searchPlaceholder}
+            value={searchQuery || ''} 
+            onChangeText={onSearch}
+          />
+          <TouchableOpacity style={styles.ocrButton} onPress={handleScanPress}>
+            <Ionicons name="camera" size={16} color="#fff" />
+            <Text style={styles.ocrText}>{t.scanButton}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Floating Google-style autocomplete suggestions dropdown */}
+        {searchQuery && !selectedDrug && suggestionsList.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            {suggestionsList.map((drug) => (
+              <TouchableOpacity
+                key={drug.id}
+                style={styles.suggestionRow}
+                onPress={() => handleSelect(drug)}
+              >
+                <Ionicons name="search-outline" size={14} color="#6B7280" style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.suggestionBrandText}>{drug.brand_name}</Text>
+                  <Text style={styles.suggestionGenericText}>{drug.generic_name} ({drug.dosage})</Text>
+                </View>
+                <Ionicons name="arrow-up-sharp" size={14} color="#D1D5DB" style={{ transform: [{ rotate: '-45deg' }] }} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* OCR Scan Modal */}
@@ -309,7 +324,10 @@ export default function SearchScreen({
                   <Text style={styles.brandTitle}>{selectedDrug.brand_name}</Text>
                   <Text style={styles.genericSubtitle}>{t.labelGeneric}: {selectedDrug.generic_name} ({selectedDrug.dosage})</Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowDetailedView(false)}>
+                <TouchableOpacity onPress={() => {
+                  setShowDetailedView(false);
+                  onSearch(''); // Reset state back to clean search bar
+                }}>
                   <Ionicons name="close-circle-outline" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
@@ -478,7 +496,7 @@ export default function SearchScreen({
               </View>
 
               <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-                <Text style={styles.sectionSubtitle}>Pumili ng brand para sa bawat gamot na nakita:</Text>
+                <Text style={styles.sectionSubtitle}>{t.ocrProductHeaderSubtitle}</Text>
                 
                 {ocrSelectedDrugs.map((drug) => {
                   const activeBrand = ocrSelectedBrands[drug.id];
@@ -487,7 +505,7 @@ export default function SearchScreen({
                     <View key={drug.id} style={styles.shopeeOcrGroupCard}>
                       <View style={styles.ocrProductHeader}>
                         <Text style={styles.ocrProductBrandTitle}>{drug.brand_name} ({drug.generic_name})</Text>
-                        <Text style={styles.ocrProductGenericSubtitle}>Dose: {drug.strength || drug.dosage}</Text>
+                        <Text style={styles.ocrProductGenericSubtitle}>{t.labelActive}: {drug.strength || drug.dosage}</Text>
                       </View>
 
                       {drug.alternatives.map((alt, idx) => {
@@ -517,20 +535,20 @@ export default function SearchScreen({
                 })}
 
                 <View style={styles.shopeeSummaryCard}>
-                  <Text style={styles.summaryTitle}>KABUUANG DETALYE</Text>
+                  <Text style={styles.summaryTitle}>{t.labelSummaryTitle}</Text>
                   
                   <View style={styles.summaryItemRow}>
-                    <Text style={styles.summaryItemLabel}>Branded Total:</Text>
+                    <Text style={styles.summaryItemLabel}>{t.labelBrandedTotal}:</Text>
                     <Text style={styles.summaryItemValue}>₱{ocrSummary.brandedCost.toFixed(2)}</Text>
                   </View>
 
                   <View style={styles.summaryItemRow}>
-                    <Text style={styles.summaryItemLabel}>Generic Total:</Text>
+                    <Text style={styles.summaryItemLabel}>{t.labelGenericTotal}:</Text>
                     <Text style={styles.summaryItemValue}>₱{ocrSummary.genericCost.toFixed(2)}</Text>
                   </View>
 
                   <View style={styles.summarySavingsRow}>
-                    <Text style={styles.savingsLabel}>Kabuuang {getSavingsLabel()}:</Text>
+                    <Text style={styles.savingsLabel}>{t.labelTotalSavings}:</Text>
                     <Text style={styles.savingsValue}>₱{ocrSummary.savings.toFixed(2)} ({ocrSummary.percentage}% {getSavingsLabel()})</Text>
                   </View>
                 </View>
@@ -638,6 +656,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 16,
   },
+  searchContainerContainer: {
+    position: 'relative',
+    width: '100%',
+    zIndex: 50,
+  },
   searchContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -676,6 +699,43 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12, 
     marginLeft: 4,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 58,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    zIndex: 999,
+    maxHeight: 220,
+    overflow: 'scroll',
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestionBrandText: {
+    fontSize: 15, 
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  suggestionGenericText: {
+    fontSize: 13, 
+    color: '#6B7280',
+    marginTop: 2,
   },
   loadingContainer: {
     padding: 16,
